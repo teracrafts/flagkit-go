@@ -59,8 +59,8 @@ type Options struct {
 	// Debug enables debug logging.
 	Debug bool
 
-	// IsLocal enables local development mode (uses localhost:8200).
-	IsLocal bool
+	// LocalPort specifies a local port for development mode (0 means not set/production).
+	LocalPort int
 
 	// Logger is a custom logger implementation.
 	Logger Logger
@@ -226,9 +226,9 @@ func WithOnUpdate(fn func([]FlagState)) OptionFunc {
 	}
 }
 
-// WithIsLocal enables local development mode (uses localhost:8200).
-func WithIsLocal() OptionFunc {
+// WithLocalPort enables local development mode with the specified port.
+func WithLocalPort(port int) OptionFunc {
 	return func(o *Options) {
-		o.IsLocal = true
+		o.LocalPort = port
 	}
 }
