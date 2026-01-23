@@ -209,6 +209,7 @@ if err != nil {
 | `WithCacheTTL` | Duration | 5m | Cache TTL |
 | `WithCacheDisabled` | - | - | Disable local caching |
 | `WithOffline` | - | - | Offline mode |
+| `WithIsLocal` | - | - | Local development mode (uses localhost:8200) |
 | `WithTimeout` | Duration | 5s | HTTP request timeout |
 | `WithRetries` | int | 3 | Number of retry attempts |
 | `WithBootstrap` | map | {} | Initial flag values |

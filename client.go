@@ -72,7 +72,8 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 			BackoffMultiplier: 2.0,
 			Jitter:            100 * time.Millisecond,
 		},
-		Logger: logger,
+		Logger:  logger,
+		IsLocal: options.IsLocal,
 	})
 
 	// Create event queue

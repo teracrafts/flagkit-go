@@ -153,6 +153,15 @@ func TestWithLogger(t *testing.T) {
 	assert.Equal(t, logger, opts.Logger)
 }
 
+func TestWithIsLocal(t *testing.T) {
+	opts := DefaultOptions("sdk_test_key")
+	assert.False(t, opts.IsLocal)
+
+	WithIsLocal()(opts)
+
+	assert.True(t, opts.IsLocal)
+}
+
 func TestWithCallbacks(t *testing.T) {
 	opts := DefaultOptions("sdk_test_key")
 

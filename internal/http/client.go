@@ -20,6 +20,9 @@ var SDKVersion = "1.0.0"
 // defaultBaseURL is the internal base URL for the FlagKit API.
 const defaultBaseURL = "https://api.flagkit.dev/api/v1"
 
+// localBaseURL is the base URL for local development.
+const localBaseURL = "http://localhost:8200/api/v1"
+
 // Client handles HTTP communication with the FlagKit API.
 type Client struct {
 	baseURL        string
@@ -38,6 +41,7 @@ type ClientConfig struct {
 	Retry          *RetryConfig
 	CircuitBreaker *CircuitBreakerConfig
 	Logger         types.Logger
+	IsLocal        bool
 }
 
 // Response represents an HTTP response.
@@ -50,8 +54,13 @@ type Response struct {
 
 // NewClient creates a new HTTP client.
 func NewClient(config *ClientConfig) *Client {
+	baseURL := defaultBaseURL
+	if config.IsLocal {
+		baseURL = localBaseURL
+	}
+
 	client := &Client{
-		baseURL: defaultBaseURL,
+		baseURL: baseURL,
 		apiKey:  config.APIKey,
 		timeout: config.Timeout,
 		client: &http.Client{

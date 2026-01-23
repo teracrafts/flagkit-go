@@ -59,6 +59,9 @@ type Options struct {
 	// Debug enables debug logging.
 	Debug bool
 
+	// IsLocal enables local development mode (uses localhost:8200).
+	IsLocal bool
+
 	// Logger is a custom logger implementation.
 	Logger Logger
 
@@ -220,5 +223,12 @@ func WithOnError(fn func(error)) OptionFunc {
 func WithOnUpdate(fn func([]FlagState)) OptionFunc {
 	return func(o *Options) {
 		o.OnUpdate = fn
+	}
+}
+
+// WithIsLocal enables local development mode (uses localhost:8200).
+func WithIsLocal() OptionFunc {
+	return func(o *Options) {
+		o.IsLocal = true
 	}
 }
