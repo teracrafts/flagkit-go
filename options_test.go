@@ -153,13 +153,13 @@ func TestWithLogger(t *testing.T) {
 	assert.Equal(t, logger, opts.Logger)
 }
 
-func TestWithIsLocal(t *testing.T) {
+func TestWithLocalPort(t *testing.T) {
 	opts := DefaultOptions("sdk_test_key")
-	assert.False(t, opts.IsLocal)
+	assert.Equal(t, 0, opts.LocalPort)
 
-	WithIsLocal()(opts)
+	WithLocalPort(8200)(opts)
 
-	assert.True(t, opts.IsLocal)
+	assert.Equal(t, 8200, opts.LocalPort)
 }
 
 func TestWithCallbacks(t *testing.T) {
