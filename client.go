@@ -3,21 +3,30 @@ package flagkit
 import (
 	"sync"
 	"time"
+
+	"github.com/flagkit/flagkit-go/internal/core"
+	"github.com/flagkit/flagkit-go/internal/http"
+	"github.com/flagkit/flagkit-go/internal/types"
 )
+
+func init() {
+	// Set SDK version in internal http package
+	http.SDKVersion = SDKVersion
+}
 
 // Client is the FlagKit SDK client.
 type Client struct {
 	options        *Options
-	cache          *Cache
-	httpClient     *HTTPClient
-	eventQueue     *EventQueue
-	pollingManager *PollingManager
-	context        *EvaluationContext
+	cache          *core.Cache
+	httpClient     *http.Client
+	eventQueue     *core.EventQueue
+	pollingManager *core.PollingManager
+	context        *types.EvaluationContext
 	sessionID      string
 	lastUpdateTime string
 	ready          bool
 	closed         bool
-	logger         Logger
+	logger         types.Logger
 	mu             sync.RWMutex
 }
 
@@ -33,31 +42,31 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 	}
 
 	// Set up logger
-	var logger Logger
+	var logger types.Logger
 	if options.Logger != nil {
 		logger = options.Logger
 	} else if options.Debug {
-		logger = NewDefaultLogger(true)
+		logger = types.NewDefaultLogger(true)
 	} else {
-		logger = &NullLogger{}
+		logger = &types.NullLogger{}
 	}
 
 	// Generate session ID
 	sessionID := generateSessionID()
 
 	// Create cache
-	cache := NewCache(&CacheConfig{
+	cache := core.NewCache(&core.CacheConfig{
 		TTL:     options.CacheTTL,
 		MaxSize: 1000,
 		Logger:  logger,
 	})
 
 	// Create HTTP client
-	httpClient := NewHTTPClient(&HTTPClientConfig{
+	httpClient := http.NewClient(&http.ClientConfig{
 		BaseURL: options.BaseURL,
 		APIKey:  options.APIKey,
 		Timeout: options.Timeout,
-		Retry: &RetryConfig{
+		Retry: &http.RetryConfig{
 			MaxAttempts:       options.Retries,
 			BaseDelay:         time.Second,
 			MaxDelay:          30 * time.Second,
@@ -68,7 +77,7 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 	})
 
 	// Create event queue
-	eventQueue := NewEventQueue(&EventQueueOptions{
+	eventQueue := core.NewEventQueue(&core.EventQueueOptions{
 		HTTPClient: httpClient,
 		SessionID:  sessionID,
 		SDKVersion: SDKVersion,
@@ -123,7 +132,7 @@ func (c *Client) Initialize() error {
 		return err
 	}
 
-	data, err := ParseInitResponse(resp.Body)
+	data, err := types.ParseInitResponse(resp.Body)
 	if err != nil {
 		c.logger.Error("Failed to parse init response", "error", err.Error())
 		c.setReady()
@@ -133,7 +142,7 @@ func (c *Client) Initialize() error {
 	// Set environment ID for event tracking
 	c.eventQueue.SetEnvironmentID(data.EnvironmentID)
 
-	// Update cache with flags
+	// Convert types.FlagState to be compatible with cache
 	c.cache.SetMany(data.Flags, c.options.CacheTTL)
 	c.lastUpdateTime = data.ServerTime
 
@@ -266,7 +275,7 @@ func (c *Client) ClearContext() {
 
 // Identify identifies a user.
 func (c *Client) Identify(userID string, attributes ...map[string]interface{}) {
-	ctx := NewContext(userID)
+	ctx := types.NewContext(userID)
 	if len(attributes) > 0 {
 		for k, v := range attributes[0] {
 			ctx.WithCustom(k, v)
@@ -287,7 +296,7 @@ func (c *Client) Identify(userID string, attributes ...map[string]interface{}) {
 // Reset resets to anonymous user.
 func (c *Client) Reset() {
 	c.mu.Lock()
-	c.context = NewAnonymousContext()
+	c.context = types.NewAnonymousContext()
 	c.mu.Unlock()
 
 	c.eventQueue.Track("context.reset", nil)
@@ -354,7 +363,7 @@ func (c *Client) evaluate(key string, defaultValue interface{}, ctx *EvaluationC
 	// Try cache first
 	if cached := c.cache.Get(key); cached != nil {
 		// Type check if expected type provided
-		if expectedType != "" && cached.FlagType != expectedType {
+		if expectedType != "" && cached.FlagType != types.FlagType(expectedType) {
 			c.logger.Warn("Flag type mismatch",
 				"key", key,
 				"expected", expectedType,
@@ -400,12 +409,12 @@ func (c *Client) evaluate(key string, defaultValue interface{}, ctx *EvaluationC
 // applyBootstrap applies bootstrap values to cache.
 func (c *Client) applyBootstrap() {
 	for key, value := range c.options.Bootstrap {
-		flag := FlagState{
+		flag := types.FlagState{
 			Key:          key,
 			Value:        value,
 			Enabled:      true,
 			Version:      0,
-			FlagType:     inferFlagType(value),
+			FlagType:     types.InferFlagType(value),
 			LastModified: time.Now().UTC().Format(time.RFC3339),
 		}
 		// Bootstrap values don't expire (use very long TTL)
@@ -423,7 +432,7 @@ func (c *Client) startPolling(interval time.Duration) {
 		interval = c.options.PollingInterval
 	}
 
-	c.pollingManager = NewPollingManager(c.refresh, &PollingConfig{
+	c.pollingManager = core.NewPollingManager(c.refresh, &core.PollingConfig{
 		Interval:          interval,
 		Jitter:            time.Second,
 		BackoffMultiplier: 2.0,
@@ -449,7 +458,7 @@ func (c *Client) refresh() {
 		return
 	}
 
-	data, err := ParseUpdatesResponse(resp.Body)
+	data, err := types.ParseUpdatesResponse(resp.Body)
 	if err != nil {
 		c.logger.Warn("Failed to parse updates response", "error", err.Error())
 		return
@@ -462,7 +471,10 @@ func (c *Client) refresh() {
 		c.logger.Debug("Flags refreshed", "count", len(data.Flags))
 
 		if c.options.OnUpdate != nil {
-			c.options.OnUpdate(data.Flags)
+			// Convert types.FlagState to FlagState for callback
+			flags := make([]FlagState, len(data.Flags))
+			copy(flags, data.Flags)
+			c.options.OnUpdate(flags)
 		}
 	}
 
@@ -488,20 +500,6 @@ func getContext(ctx []*EvaluationContext) *EvaluationContext {
 		return ctx[0]
 	}
 	return nil
-}
-
-// inferFlagType infers the flag type from a value.
-func inferFlagType(value interface{}) FlagType {
-	switch value.(type) {
-	case bool:
-		return FlagTypeBoolean
-	case string:
-		return FlagTypeString
-	case int, int32, int64, float32, float64:
-		return FlagTypeNumber
-	default:
-		return FlagTypeJSON
-	}
 }
 
 // generateSessionID generates a random session ID.

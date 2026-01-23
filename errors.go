@@ -1,157 +1,104 @@
 package flagkit
 
 import (
-	"fmt"
+	"github.com/flagkit/flagkit-go/internal/errors"
 )
 
 // ErrorCode represents a FlagKit error code.
-type ErrorCode string
+type ErrorCode = errors.ErrorCode
 
 // Error codes
 const (
 	// Initialization errors
-	ErrInitFailed             ErrorCode = "INIT_FAILED"
-	ErrInitTimeout            ErrorCode = "INIT_TIMEOUT"
-	ErrInitAlreadyInitialized ErrorCode = "INIT_ALREADY_INITIALIZED"
-	ErrInitNotInitialized     ErrorCode = "INIT_NOT_INITIALIZED"
+	ErrInitFailed             = errors.ErrInitFailed
+	ErrInitTimeout            = errors.ErrInitTimeout
+	ErrInitAlreadyInitialized = errors.ErrInitAlreadyInitialized
+	ErrInitNotInitialized     = errors.ErrInitNotInitialized
 
 	// Authentication errors
-	ErrAuthInvalidKey   ErrorCode = "AUTH_INVALID_KEY"
-	ErrAuthExpiredKey   ErrorCode = "AUTH_EXPIRED_KEY"
-	ErrAuthMissingKey   ErrorCode = "AUTH_MISSING_KEY"
-	ErrAuthUnauthorized ErrorCode = "AUTH_UNAUTHORIZED"
+	ErrAuthInvalidKey   = errors.ErrAuthInvalidKey
+	ErrAuthExpiredKey   = errors.ErrAuthExpiredKey
+	ErrAuthMissingKey   = errors.ErrAuthMissingKey
+	ErrAuthUnauthorized = errors.ErrAuthUnauthorized
 
 	// Network errors
-	ErrNetworkError      ErrorCode = "NETWORK_ERROR"
-	ErrNetworkTimeout    ErrorCode = "NETWORK_TIMEOUT"
-	ErrNetworkRetryLimit ErrorCode = "NETWORK_RETRY_LIMIT"
+	ErrNetworkError      = errors.ErrNetworkError
+	ErrNetworkTimeout    = errors.ErrNetworkTimeout
+	ErrNetworkRetryLimit = errors.ErrNetworkRetryLimit
 
 	// Evaluation errors
-	ErrEvalFlagNotFound  ErrorCode = "EVAL_FLAG_NOT_FOUND"
-	ErrEvalTypeMismatch  ErrorCode = "EVAL_TYPE_MISMATCH"
-	ErrEvalInvalidKey    ErrorCode = "EVAL_INVALID_KEY"
-	ErrEvalInvalidValue  ErrorCode = "EVAL_INVALID_VALUE"
-	ErrEvalDisabled      ErrorCode = "EVAL_DISABLED"
-	ErrEvalError         ErrorCode = "EVAL_ERROR"
-	ErrEvalContextError  ErrorCode = "EVAL_CONTEXT_ERROR"
-	ErrEvalDefaultUsed   ErrorCode = "EVAL_DEFAULT_USED"
-	ErrEvalStaleValue    ErrorCode = "EVAL_STALE_VALUE"
-	ErrEvalCacheMiss     ErrorCode = "EVAL_CACHE_MISS"
-	ErrEvalNetworkError  ErrorCode = "EVAL_NETWORK_ERROR"
-	ErrEvalParseError    ErrorCode = "EVAL_PARSE_ERROR"
-	ErrEvalTimeoutError  ErrorCode = "EVAL_TIMEOUT_ERROR"
+	ErrEvalFlagNotFound  = errors.ErrEvalFlagNotFound
+	ErrEvalTypeMismatch  = errors.ErrEvalTypeMismatch
+	ErrEvalInvalidKey    = errors.ErrEvalInvalidKey
+	ErrEvalInvalidValue  = errors.ErrEvalInvalidValue
+	ErrEvalDisabled      = errors.ErrEvalDisabled
+	ErrEvalError         = errors.ErrEvalError
+	ErrEvalContextError  = errors.ErrEvalContextError
+	ErrEvalDefaultUsed   = errors.ErrEvalDefaultUsed
+	ErrEvalStaleValue    = errors.ErrEvalStaleValue
+	ErrEvalCacheMiss     = errors.ErrEvalCacheMiss
+	ErrEvalNetworkError  = errors.ErrEvalNetworkError
+	ErrEvalParseError    = errors.ErrEvalParseError
+	ErrEvalTimeoutError  = errors.ErrEvalTimeoutError
 
 	// Cache errors
-	ErrCacheReadError    ErrorCode = "CACHE_READ_ERROR"
-	ErrCacheWriteError   ErrorCode = "CACHE_WRITE_ERROR"
-	ErrCacheInvalidData  ErrorCode = "CACHE_INVALID_DATA"
-	ErrCacheExpired      ErrorCode = "CACHE_EXPIRED"
-	ErrCacheStorageError ErrorCode = "CACHE_STORAGE_ERROR"
+	ErrCacheReadError    = errors.ErrCacheReadError
+	ErrCacheWriteError   = errors.ErrCacheWriteError
+	ErrCacheInvalidData  = errors.ErrCacheInvalidData
+	ErrCacheExpired      = errors.ErrCacheExpired
+	ErrCacheStorageError = errors.ErrCacheStorageError
 
 	// Event errors
-	ErrEventQueueFull    ErrorCode = "EVENT_QUEUE_FULL"
-	ErrEventInvalidType  ErrorCode = "EVENT_INVALID_TYPE"
-	ErrEventInvalidData  ErrorCode = "EVENT_INVALID_DATA"
-	ErrEventSendFailed   ErrorCode = "EVENT_SEND_FAILED"
-	ErrEventFlushFailed  ErrorCode = "EVENT_FLUSH_FAILED"
-	ErrEventFlushTimeout ErrorCode = "EVENT_FLUSH_TIMEOUT"
+	ErrEventQueueFull    = errors.ErrEventQueueFull
+	ErrEventInvalidType  = errors.ErrEventInvalidType
+	ErrEventInvalidData  = errors.ErrEventInvalidData
+	ErrEventSendFailed   = errors.ErrEventSendFailed
+	ErrEventFlushFailed  = errors.ErrEventFlushFailed
+	ErrEventFlushTimeout = errors.ErrEventFlushTimeout
 
 	// Circuit breaker errors
-	ErrCircuitOpen ErrorCode = "CIRCUIT_OPEN"
+	ErrCircuitOpen = errors.ErrCircuitOpen
 
 	// Configuration errors
-	ErrConfigInvalidURL      ErrorCode = "CONFIG_INVALID_URL"
-	ErrConfigInvalidInterval ErrorCode = "CONFIG_INVALID_INTERVAL"
-	ErrConfigMissingRequired ErrorCode = "CONFIG_MISSING_REQUIRED"
+	ErrConfigInvalidURL      = errors.ErrConfigInvalidURL
+	ErrConfigInvalidInterval = errors.ErrConfigInvalidInterval
+	ErrConfigMissingRequired = errors.ErrConfigMissingRequired
 )
 
 // FlagKitError is the base error type for all FlagKit errors.
-type FlagKitError struct {
-	Code        ErrorCode
-	Message     string
-	Cause       error
-	Recoverable bool
-	Details     map[string]interface{}
-}
-
-// Error implements the error interface.
-func (e *FlagKitError) Error() string {
-	if e.Cause != nil {
-		return fmt.Sprintf("[%s] %s: %v", e.Code, e.Message, e.Cause)
-	}
-	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
-}
-
-// Unwrap returns the underlying cause.
-func (e *FlagKitError) Unwrap() error {
-	return e.Cause
-}
+type FlagKitError = errors.FlagKitError
 
 // NewError creates a new FlagKitError.
 func NewError(code ErrorCode, message string) *FlagKitError {
-	return &FlagKitError{
-		Code:        code,
-		Message:     message,
-		Recoverable: isRecoverable(code),
-		Details:     make(map[string]interface{}),
-	}
+	return errors.NewError(code, message)
 }
 
 // NewErrorWithCause creates a new FlagKitError with a cause.
 func NewErrorWithCause(code ErrorCode, message string, cause error) *FlagKitError {
-	return &FlagKitError{
-		Code:        code,
-		Message:     message,
-		Cause:       cause,
-		Recoverable: isRecoverable(code),
-		Details:     make(map[string]interface{}),
-	}
-}
-
-// WithDetails adds details to the error.
-func (e *FlagKitError) WithDetails(details map[string]interface{}) *FlagKitError {
-	for k, v := range details {
-		e.Details[k] = v
-	}
-	return e
-}
-
-// isRecoverable determines if an error code represents a recoverable error.
-func isRecoverable(code ErrorCode) bool {
-	switch code {
-	case ErrNetworkError, ErrNetworkTimeout, ErrNetworkRetryLimit,
-		ErrCircuitOpen, ErrCacheExpired, ErrEvalStaleValue,
-		ErrEvalCacheMiss, ErrEvalNetworkError, ErrEventSendFailed:
-		return true
-	default:
-		return false
-	}
+	return errors.NewErrorWithCause(code, message, cause)
 }
 
 // IsRecoverable checks if the error is recoverable.
 func IsRecoverable(err error) bool {
-	if fkErr, ok := err.(*FlagKitError); ok {
-		return fkErr.Recoverable
-	}
-	return false
+	return errors.IsRecoverable(err)
 }
 
 // InitializationError creates an initialization error.
 func InitializationError(code ErrorCode, message string) *FlagKitError {
-	return NewError(code, message)
+	return errors.InitializationError(code, message)
 }
 
 // AuthenticationError creates an authentication error.
 func AuthenticationError(code ErrorCode, message string) *FlagKitError {
-	return NewError(code, message)
+	return errors.AuthenticationError(code, message)
 }
 
 // NetworkError creates a network error.
 func NetworkError(code ErrorCode, message string, cause error) *FlagKitError {
-	return NewErrorWithCause(code, message, cause)
+	return errors.NetworkError(code, message, cause)
 }
 
 // EvaluationError creates an evaluation error.
 func EvaluationError(code ErrorCode, message string) *FlagKitError {
-	return NewError(code, message)
+	return errors.EvaluationError(code, message)
 }
