@@ -11,7 +11,6 @@ type HTTPClient = http.Client
 
 // HTTPClientConfig contains HTTP client configuration.
 type HTTPClientConfig struct {
-	BaseURL        string
 	APIKey         string
 	Timeout        time.Duration
 	Retry          *RetryConfig
@@ -46,7 +45,6 @@ func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
 	}
 
 	return http.NewClient(&http.ClientConfig{
-		BaseURL:        config.BaseURL,
 		APIKey:         config.APIKey,
 		Timeout:        config.Timeout,
 		Retry:          retryConfig,

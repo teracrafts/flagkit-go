@@ -63,7 +63,6 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 
 	// Create HTTP client
 	httpClient := http.NewClient(&http.ClientConfig{
-		BaseURL: options.BaseURL,
 		APIKey:  options.APIKey,
 		Timeout: options.Timeout,
 		Retry: &http.RetryConfig{
@@ -97,7 +96,6 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 	client.applyBootstrap()
 
 	logger.Info("FlagKit client created",
-		"base_url", options.BaseURL,
 		"offline", options.Offline,
 	)
 

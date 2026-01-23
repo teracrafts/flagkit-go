@@ -17,6 +17,9 @@ import (
 // SDKVersion should be set by the main package.
 var SDKVersion = "1.0.0"
 
+// defaultBaseURL is the internal base URL for the FlagKit API.
+const defaultBaseURL = "https://api.flagkit.dev/api/v1"
+
 // Client handles HTTP communication with the FlagKit API.
 type Client struct {
 	baseURL        string
@@ -30,7 +33,6 @@ type Client struct {
 
 // ClientConfig contains HTTP client configuration.
 type ClientConfig struct {
-	BaseURL        string
 	APIKey         string
 	Timeout        time.Duration
 	Retry          *RetryConfig
@@ -49,7 +51,7 @@ type Response struct {
 // NewClient creates a new HTTP client.
 func NewClient(config *ClientConfig) *Client {
 	client := &Client{
-		baseURL: config.BaseURL,
+		baseURL: defaultBaseURL,
 		apiKey:  config.APIKey,
 		timeout: config.Timeout,
 		client: &http.Client{
