@@ -1,11 +1,9 @@
-package http
+package internal
 
 import (
 	"math"
 	"math/rand"
 	"time"
-
-	"github.com/flagkit/flagkit-go/internal/errors"
 )
 
 // RetryConfig contains retry configuration.
@@ -76,10 +74,21 @@ func WithRetry[T any](fn func() (T, error), config *RetryConfig) (T, error) {
 	return zero, lastErr
 }
 
+// RecoverableError is an interface for errors that can be checked for recoverability.
+type RecoverableError interface {
+	error
+	IsRecoverable() bool
+}
+
 // isRetryableError checks if an error should be retried.
 func isRetryableError(err error) bool {
-	if fkErr, ok := err.(*errors.FlagKitError); ok {
+	// Check internal FlagKitError
+	if fkErr, ok := err.(*FlagKitError); ok {
 		return fkErr.Recoverable
+	}
+	// Check for RecoverableError interface (for public package errors)
+	if re, ok := err.(RecoverableError); ok {
+		return re.IsRecoverable()
 	}
 	return false
 }

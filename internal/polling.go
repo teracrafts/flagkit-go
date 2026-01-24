@@ -1,11 +1,9 @@
-package core
+package internal
 
 import (
 	"math/rand"
 	"sync"
 	"time"
-
-	"github.com/flagkit/flagkit-go/internal/types"
 )
 
 // PollingConfig contains polling configuration.
@@ -30,7 +28,7 @@ func DefaultPollingConfig() *PollingConfig {
 type PollingManager struct {
 	config            *PollingConfig
 	onPoll            func()
-	logger            types.Logger
+	logger            Logger
 	currentInterval   time.Duration
 	consecutiveErrors int
 	running           bool
@@ -39,7 +37,7 @@ type PollingManager struct {
 }
 
 // NewPollingManager creates a new polling manager.
-func NewPollingManager(onPoll func(), config *PollingConfig, logger types.Logger) *PollingManager {
+func NewPollingManager(onPoll func(), config *PollingConfig, logger Logger) *PollingManager {
 	if config == nil {
 		config = DefaultPollingConfig()
 	}

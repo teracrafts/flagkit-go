@@ -1,10 +1,8 @@
-package http
+package internal
 
 import (
 	"sync"
 	"time"
-
-	"github.com/flagkit/flagkit-go/internal/types"
 )
 
 // CircuitState represents the state of a circuit breaker.
@@ -57,7 +55,7 @@ type CircuitBreaker struct {
 	halfOpenAllowed    int
 	halfOpenInProgress int
 	mu                 sync.Mutex
-	logger             types.Logger
+	logger             Logger
 }
 
 // NewCircuitBreaker creates a new circuit breaker.
@@ -183,11 +181,11 @@ func (cb *CircuitBreaker) Stats() map[string]interface{} {
 	defer cb.mu.Unlock()
 
 	return map[string]interface{}{
-		"state":                  cb.state.String(),
-		"failures":               cb.failures,
-		"successes":              cb.successes,
-		"failure_threshold":      cb.config.FailureThreshold,
-		"success_threshold":      cb.config.SuccessThreshold,
-		"half_open_in_progress":  cb.halfOpenInProgress,
+		"state":                 cb.state.String(),
+		"failures":              cb.failures,
+		"successes":             cb.successes,
+		"failure_threshold":     cb.config.FailureThreshold,
+		"success_threshold":     cb.config.SuccessThreshold,
+		"half_open_in_progress": cb.halfOpenInProgress,
 	}
 }

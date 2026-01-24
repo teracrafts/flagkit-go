@@ -1,5 +1,4 @@
-// Package http contains HTTP client code for FlagKit SDK.
-package http
+package internal
 
 import (
 	"bytes"
@@ -9,9 +8,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/flagkit/flagkit-go/internal/errors"
-	"github.com/flagkit/flagkit-go/internal/types"
 )
 
 // SDKVersion should be set by the main package.
@@ -20,43 +16,43 @@ var SDKVersion = "1.0.0"
 // defaultBaseURL is the internal base URL for the FlagKit API.
 const defaultBaseURL = "https://api.flagkit.dev/api/v1"
 
-// Client handles HTTP communication with the FlagKit API.
-type Client struct {
+// HTTPClient handles HTTP communication with the FlagKit API.
+type HTTPClient struct {
 	baseURL        string
 	apiKey         string
 	timeout        time.Duration
 	client         *http.Client
 	retry          *RetryConfig
 	circuitBreaker *CircuitBreaker
-	logger         types.Logger
+	logger         Logger
 }
 
-// ClientConfig contains HTTP client configuration.
-type ClientConfig struct {
+// HTTPClientConfig contains HTTP client configuration.
+type HTTPClientConfig struct {
 	APIKey         string
 	Timeout        time.Duration
 	Retry          *RetryConfig
 	CircuitBreaker *CircuitBreakerConfig
-	Logger         types.Logger
+	Logger         Logger
 	LocalPort      int
 }
 
-// Response represents an HTTP response.
-type Response struct {
+// HTTPResponse represents an HTTP response.
+type HTTPResponse struct {
 	StatusCode int
 	Headers    http.Header
 	Body       []byte
 	Data       interface{}
 }
 
-// NewClient creates a new HTTP client.
-func NewClient(config *ClientConfig) *Client {
+// NewHTTPClient creates a new HTTP client.
+func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
 	baseURL := defaultBaseURL
 	if config.LocalPort > 0 {
 		baseURL = fmt.Sprintf("http://localhost:%d/api/v1", config.LocalPort)
 	}
 
-	client := &Client{
+	client := &HTTPClient{
 		baseURL: baseURL,
 		apiKey:  config.APIKey,
 		timeout: config.Timeout,
@@ -82,30 +78,30 @@ func NewClient(config *ClientConfig) *Client {
 }
 
 // Get performs a GET request.
-func (c *Client) Get(path string) (*Response, error) {
+func (c *HTTPClient) Get(path string) (*HTTPResponse, error) {
 	return c.request(context.Background(), http.MethodGet, path, nil)
 }
 
 // GetWithContext performs a GET request with context.
-func (c *Client) GetWithContext(ctx context.Context, path string) (*Response, error) {
+func (c *HTTPClient) GetWithContext(ctx context.Context, path string) (*HTTPResponse, error) {
 	return c.request(ctx, http.MethodGet, path, nil)
 }
 
 // Post performs a POST request.
-func (c *Client) Post(path string, body interface{}) (*Response, error) {
+func (c *HTTPClient) Post(path string, body interface{}) (*HTTPResponse, error) {
 	return c.request(context.Background(), http.MethodPost, path, body)
 }
 
 // PostWithContext performs a POST request with context.
-func (c *Client) PostWithContext(ctx context.Context, path string, body interface{}) (*Response, error) {
+func (c *HTTPClient) PostWithContext(ctx context.Context, path string, body interface{}) (*HTTPResponse, error) {
 	return c.request(ctx, http.MethodPost, path, body)
 }
 
 // request performs an HTTP request with retry and circuit breaker.
-func (c *Client) request(ctx context.Context, method, path string, body interface{}) (*Response, error) {
+func (c *HTTPClient) request(ctx context.Context, method, path string, body interface{}) (*HTTPResponse, error) {
 	// Check circuit breaker
 	if !c.circuitBreaker.Allow() {
-		return nil, errors.NewError(errors.ErrCircuitOpen, "circuit breaker is open")
+		return nil, NewError(ErrCircuitOpen, "circuit breaker is open")
 	}
 
 	var lastErr error
@@ -151,25 +147,25 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 	}
 
 	c.circuitBreaker.RecordFailure()
-	return nil, errors.NetworkError(errors.ErrNetworkRetryLimit, "max retries exceeded", lastErr)
+	return nil, NetworkError(ErrNetworkRetryLimit, "max retries exceeded", lastErr)
 }
 
 // doRequest performs a single HTTP request.
-func (c *Client) doRequest(ctx context.Context, method, path string, body interface{}) (*Response, error) {
+func (c *HTTPClient) doRequest(ctx context.Context, method, path string, body interface{}) (*HTTPResponse, error) {
 	url := c.baseURL + path
 
 	var bodyReader io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			return nil, errors.NewErrorWithCause(errors.ErrNetworkError, "failed to marshal request body", err)
+			return nil, NewErrorWithCause(ErrNetworkError, "failed to marshal request body", err)
 		}
 		bodyReader = bytes.NewReader(jsonBody)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 	if err != nil {
-		return nil, errors.NewErrorWithCause(errors.ErrNetworkError, "failed to create request", err)
+		return nil, NewErrorWithCause(ErrNetworkError, "failed to create request", err)
 	}
 
 	// Set headers
@@ -181,17 +177,17 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 	// Execute request
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, errors.NewErrorWithCause(errors.ErrNetworkError, "request failed", err)
+		return nil, NewErrorWithCause(ErrNetworkError, "request failed", err)
 	}
 	defer resp.Body.Close()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.NewErrorWithCause(errors.ErrNetworkError, "failed to read response body", err)
+		return nil, NewErrorWithCause(ErrNetworkError, "failed to read response body", err)
 	}
 
-	response := &Response{
+	response := &HTTPResponse{
 		StatusCode: resp.StatusCode,
 		Headers:    resp.Header,
 		Body:       respBody,
@@ -214,7 +210,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 }
 
 // handleErrorResponse converts HTTP error responses to FlagKitErrors.
-func (c *Client) handleErrorResponse(statusCode int, body []byte) error {
+func (c *HTTPClient) handleErrorResponse(statusCode int, body []byte) error {
 	message := string(body)
 	if message == "" {
 		message = http.StatusText(statusCode)
@@ -222,25 +218,25 @@ func (c *Client) handleErrorResponse(statusCode int, body []byte) error {
 
 	switch statusCode {
 	case http.StatusUnauthorized:
-		return errors.NewError(errors.ErrAuthUnauthorized, message)
+		return NewError(ErrAuthUnauthorized, message)
 	case http.StatusForbidden:
-		return errors.NewError(errors.ErrAuthInvalidKey, message)
+		return NewError(ErrAuthInvalidKey, message)
 	case http.StatusNotFound:
-		return errors.NewError(errors.ErrEvalFlagNotFound, message)
+		return NewError(ErrEvalFlagNotFound, message)
 	case http.StatusTooManyRequests:
-		return errors.NewError(errors.ErrNetworkRetryLimit, message)
+		return NewError(ErrNetworkRetryLimit, message)
 	case http.StatusServiceUnavailable, http.StatusBadGateway, http.StatusGatewayTimeout:
-		return errors.NewError(errors.ErrNetworkError, message)
+		return NewError(ErrNetworkError, message)
 	default:
-		return errors.NewError(errors.ErrNetworkError, fmt.Sprintf("HTTP %d: %s", statusCode, message))
+		return NewError(ErrNetworkError, fmt.Sprintf("HTTP %d: %s", statusCode, message))
 	}
 }
 
 // isRetryable checks if an error is retryable.
-func (c *Client) isRetryable(err error) bool {
-	if fkErr, ok := err.(*errors.FlagKitError); ok {
+func (c *HTTPClient) isRetryable(err error) bool {
+	if fkErr, ok := err.(*FlagKitError); ok {
 		switch fkErr.Code {
-		case errors.ErrNetworkError, errors.ErrNetworkTimeout:
+		case ErrNetworkError, ErrNetworkTimeout:
 			return true
 		}
 	}
@@ -248,7 +244,7 @@ func (c *Client) isRetryable(err error) bool {
 }
 
 // Close closes the HTTP client.
-func (c *Client) Close() error {
+func (c *HTTPClient) Close() error {
 	c.client.CloseIdleConnections()
 	return nil
 }
