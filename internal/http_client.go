@@ -169,7 +169,7 @@ func (c *HTTPClient) doRequest(ctx context.Context, method, path string, body in
 	}
 
 	// Set headers
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("X-API-Key", c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", fmt.Sprintf("FlagKit-Go/%s", SDKVersion))
