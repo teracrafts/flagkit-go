@@ -94,10 +94,32 @@ type Options struct {
 
 	// OnUpdate is called when flags are updated.
 	OnUpdate func([]FlagState)
+
+	// PersistEvents enables crash-resilient event persistence.
+	// When enabled, events are written to disk before being queued for sending.
+	PersistEvents bool
+
+	// EventStoragePath is the directory for event storage files.
+	// Defaults to OS temp directory if not specified.
+	EventStoragePath string
+
+	// MaxPersistedEvents is the maximum number of events to persist.
+	// Default: 10000.
+	MaxPersistedEvents int
+
+	// PersistenceFlushInterval is the interval between disk writes.
+	// Default: 1 second.
+	PersistenceFlushInterval time.Duration
 }
 
 // DefaultKeyRotationGracePeriod is the default grace period for key rotation.
 const DefaultKeyRotationGracePeriod = 5 * time.Minute
+
+// DefaultMaxPersistedEvents is the default maximum number of persisted events.
+const DefaultMaxPersistedEvents = 10000
+
+// DefaultPersistenceFlushInterval is the default interval between persistence disk writes.
+const DefaultPersistenceFlushInterval = time.Second
 
 // DefaultOptions returns options with default values.
 func DefaultOptions(apiKey string) *Options {
@@ -301,5 +323,34 @@ func WithRequestSigning(enabled bool) OptionFunc {
 func WithCacheEncryption() OptionFunc {
 	return func(o *Options) {
 		o.EnableCacheEncryption = true
+	}
+}
+
+// WithPersistEvents enables crash-resilient event persistence.
+// When enabled, events are written to disk before being queued for sending.
+func WithPersistEvents(enabled bool) OptionFunc {
+	return func(o *Options) {
+		o.PersistEvents = enabled
+	}
+}
+
+// WithEventStoragePath sets the directory for event storage files.
+func WithEventStoragePath(path string) OptionFunc {
+	return func(o *Options) {
+		o.EventStoragePath = path
+	}
+}
+
+// WithMaxPersistedEvents sets the maximum number of events to persist.
+func WithMaxPersistedEvents(max int) OptionFunc {
+	return func(o *Options) {
+		o.MaxPersistedEvents = max
+	}
+}
+
+// WithPersistenceFlushInterval sets the interval between disk writes for event persistence.
+func WithPersistenceFlushInterval(interval time.Duration) OptionFunc {
+	return func(o *Options) {
+		o.PersistenceFlushInterval = interval
 	}
 }
