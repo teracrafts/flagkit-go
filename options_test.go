@@ -19,6 +19,10 @@ func TestDefaultOptions(t *testing.T) {
 	assert.True(t, opts.EnablePolling)
 	assert.False(t, opts.Offline)
 	assert.False(t, opts.Debug)
+	assert.Equal(t, 5*time.Minute, opts.KeyRotationGracePeriod)
+	assert.True(t, opts.EnableRequestSigning)
+	assert.False(t, opts.StrictPIIMode)
+	assert.False(t, opts.EnableCacheEncryption)
 }
 
 func TestOptionsValidate(t *testing.T) {
@@ -180,4 +184,65 @@ func TestWithCallbacks(t *testing.T) {
 	assert.True(t, readyCalled)
 	assert.True(t, errorCalled)
 	assert.True(t, updateCalled)
+}
+
+func TestWithSecondaryAPIKey(t *testing.T) {
+	opts := DefaultOptions("sdk_primary_key")
+	assert.Empty(t, opts.SecondaryAPIKey)
+
+	WithSecondaryAPIKey("sdk_secondary_key")(opts)
+
+	assert.Equal(t, "sdk_secondary_key", opts.SecondaryAPIKey)
+}
+
+func TestWithKeyRotationGracePeriod(t *testing.T) {
+	opts := DefaultOptions("sdk_test_key")
+	assert.Equal(t, 5*time.Minute, opts.KeyRotationGracePeriod)
+
+	WithKeyRotationGracePeriod(10 * time.Minute)(opts)
+
+	assert.Equal(t, 10*time.Minute, opts.KeyRotationGracePeriod)
+}
+
+func TestWithStrictPIIMode(t *testing.T) {
+	opts := DefaultOptions("sdk_test_key")
+	assert.False(t, opts.StrictPIIMode)
+
+	WithStrictPIIMode()(opts)
+
+	assert.True(t, opts.StrictPIIMode)
+}
+
+func TestWithRequestSigning(t *testing.T) {
+	opts := DefaultOptions("sdk_test_key")
+	assert.True(t, opts.EnableRequestSigning)
+
+	WithRequestSigning(false)(opts)
+
+	assert.False(t, opts.EnableRequestSigning)
+}
+
+func TestWithCacheEncryption(t *testing.T) {
+	opts := DefaultOptions("sdk_test_key")
+	assert.False(t, opts.EnableCacheEncryption)
+
+	WithCacheEncryption()(opts)
+
+	assert.True(t, opts.EnableCacheEncryption)
+}
+
+func TestOptionsValidateSecondaryKey(t *testing.T) {
+	t.Run("valid secondary key", func(t *testing.T) {
+		opts := DefaultOptions("sdk_primary_key_1234")
+		opts.SecondaryAPIKey = "sdk_secondary_key_1234"
+		err := opts.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("secondary key too short", func(t *testing.T) {
+		opts := DefaultOptions("sdk_primary_key_1234")
+		opts.SecondaryAPIKey = "short"
+		err := opts.Validate()
+		assert.Error(t, err)
+	})
 }

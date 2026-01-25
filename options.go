@@ -29,6 +29,15 @@ type Options struct {
 	// APIKey is the API key for authentication (required).
 	APIKey string
 
+	// SecondaryAPIKey is a secondary API key for key rotation.
+	// When the primary key receives a 401 error, the SDK will automatically
+	// fail over to use this secondary key.
+	SecondaryAPIKey string
+
+	// KeyRotationGracePeriod is the duration to track key rotation state.
+	// Default: 5 minutes.
+	KeyRotationGracePeriod time.Duration
+
 	// BaseURL is the FlagKit API base URL.
 	BaseURL string
 
@@ -43,6 +52,10 @@ type Options struct {
 
 	// CacheTTL is the time-to-live for cached values.
 	CacheTTL time.Duration
+
+	// EnableCacheEncryption enables AES-256-GCM encryption for cached data.
+	// The encryption key is derived from the API key using PBKDF2.
+	EnableCacheEncryption bool
 
 	// Offline mode disables network requests.
 	Offline bool
@@ -62,6 +75,14 @@ type Options struct {
 	// LocalPort specifies a local port for development mode (0 means not set/production).
 	LocalPort int
 
+	// StrictPIIMode when enabled returns a SecurityError instead of warning
+	// when PII is detected in context/events without proper PrivateAttributes.
+	StrictPIIMode bool
+
+	// EnableRequestSigning enables HMAC-SHA256 signing for POST requests.
+	// Default: true.
+	EnableRequestSigning bool
+
 	// Logger is a custom logger implementation.
 	Logger Logger
 
@@ -75,20 +96,25 @@ type Options struct {
 	OnUpdate func([]FlagState)
 }
 
+// DefaultKeyRotationGracePeriod is the default grace period for key rotation.
+const DefaultKeyRotationGracePeriod = 5 * time.Minute
+
 // DefaultOptions returns options with default values.
 func DefaultOptions(apiKey string) *Options {
 	return &Options{
-		APIKey:          apiKey,
-		BaseURL:         DefaultBaseURL,
-		PollingInterval: DefaultPollingInterval,
-		EnablePolling:   true,
-		CacheEnabled:    true,
-		CacheTTL:        DefaultCacheTTL,
-		Offline:         false,
-		Timeout:         DefaultTimeout,
-		Retries:         DefaultRetries,
-		Bootstrap:       make(map[string]interface{}),
-		Debug:           false,
+		APIKey:                 apiKey,
+		BaseURL:                DefaultBaseURL,
+		PollingInterval:        DefaultPollingInterval,
+		EnablePolling:          true,
+		CacheEnabled:           true,
+		CacheTTL:               DefaultCacheTTL,
+		Offline:                false,
+		Timeout:                DefaultTimeout,
+		Retries:                DefaultRetries,
+		Bootstrap:              make(map[string]interface{}),
+		Debug:                  false,
+		KeyRotationGracePeriod: DefaultKeyRotationGracePeriod,
+		EnableRequestSigning:   true,
 	}
 }
 
@@ -100,6 +126,11 @@ func (o *Options) Validate() error {
 
 	if len(o.APIKey) < 10 {
 		return NewError(ErrAuthInvalidKey, "API key is too short")
+	}
+
+	// Validate secondary API key if provided
+	if o.SecondaryAPIKey != "" && len(o.SecondaryAPIKey) < 10 {
+		return NewError(ErrAuthInvalidKey, "secondary API key is too short")
 	}
 
 	if o.BaseURL == "" {
@@ -120,6 +151,10 @@ func (o *Options) Validate() error {
 
 	if o.CacheTTL <= 0 {
 		o.CacheTTL = DefaultCacheTTL
+	}
+
+	if o.KeyRotationGracePeriod <= 0 {
+		o.KeyRotationGracePeriod = DefaultKeyRotationGracePeriod
 	}
 
 	return nil
@@ -230,5 +265,41 @@ func WithOnUpdate(fn func([]FlagState)) OptionFunc {
 func WithLocalPort(port int) OptionFunc {
 	return func(o *Options) {
 		o.LocalPort = port
+	}
+}
+
+// WithSecondaryAPIKey sets a secondary API key for key rotation.
+func WithSecondaryAPIKey(key string) OptionFunc {
+	return func(o *Options) {
+		o.SecondaryAPIKey = key
+	}
+}
+
+// WithKeyRotationGracePeriod sets the key rotation grace period.
+func WithKeyRotationGracePeriod(d time.Duration) OptionFunc {
+	return func(o *Options) {
+		o.KeyRotationGracePeriod = d
+	}
+}
+
+// WithStrictPIIMode enables strict PII detection mode.
+// When enabled, PII detection returns errors instead of warnings.
+func WithStrictPIIMode() OptionFunc {
+	return func(o *Options) {
+		o.StrictPIIMode = true
+	}
+}
+
+// WithRequestSigning enables or disables HMAC-SHA256 request signing.
+func WithRequestSigning(enabled bool) OptionFunc {
+	return func(o *Options) {
+		o.EnableRequestSigning = enabled
+	}
+}
+
+// WithCacheEncryption enables AES-256-GCM encryption for cached data.
+func WithCacheEncryption() OptionFunc {
+	return func(o *Options) {
+		o.EnableCacheEncryption = true
 	}
 }

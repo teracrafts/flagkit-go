@@ -39,6 +39,11 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 		return nil, err
 	}
 
+	// Validate LocalPort is not used in production
+	if err := ValidateLocalPort(options.LocalPort); err != nil {
+		return nil, err
+	}
+
 	// Set up logger
 	var logger Logger
 	if options.Logger != nil {
@@ -61,8 +66,11 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 
 	// Create HTTP client
 	httpClient := internal.NewHTTPClient(&internal.HTTPClientConfig{
-		APIKey:  options.APIKey,
-		Timeout: options.Timeout,
+		APIKey:                 options.APIKey,
+		SecondaryAPIKey:        options.SecondaryAPIKey,
+		KeyRotationGracePeriod: options.KeyRotationGracePeriod,
+		EnableRequestSigning:   options.EnableRequestSigning,
+		Timeout:                options.Timeout,
 		Retry: &internal.RetryConfig{
 			MaxAttempts:       options.Retries,
 			BaseDelay:         time.Second,

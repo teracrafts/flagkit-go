@@ -63,6 +63,13 @@ const (
 	ErrConfigInvalidURL      ErrorCode = "CONFIG_INVALID_URL"
 	ErrConfigInvalidInterval ErrorCode = "CONFIG_INVALID_INTERVAL"
 	ErrConfigMissingRequired ErrorCode = "CONFIG_MISSING_REQUIRED"
+
+	// Security errors
+	ErrSecurityLocalPortInProduction ErrorCode = "SECURITY_LOCAL_PORT_IN_PRODUCTION"
+	ErrSecurityPIIDetected           ErrorCode = "SECURITY_PII_DETECTED"
+	ErrSecuritySignatureInvalid      ErrorCode = "SECURITY_SIGNATURE_INVALID"
+	ErrSecurityEncryptionFailed      ErrorCode = "SECURITY_ENCRYPTION_FAILED"
+	ErrSecurityDecryptionFailed      ErrorCode = "SECURITY_DECRYPTION_FAILED"
 )
 
 // FlagKitError is the base error type for all FlagKit errors.
@@ -160,4 +167,11 @@ func NetworkError(code ErrorCode, message string, cause error) *FlagKitError {
 // EvaluationError creates an evaluation error.
 func EvaluationError(code ErrorCode, message string) *FlagKitError {
 	return NewError(code, message)
+}
+
+// SecurityError creates a security error.
+func SecurityError(code ErrorCode, message string) *FlagKitError {
+	err := NewError(code, message)
+	err.Recoverable = false
+	return err
 }
