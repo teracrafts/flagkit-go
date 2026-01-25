@@ -269,10 +269,21 @@ func (c *Client) GetAllFlagKeys() []string {
 }
 
 // SetContext sets the global evaluation context.
-func (c *Client) SetContext(ctx *EvaluationContext) {
+// Returns an error if StrictPIIMode is enabled and PII is detected without privateAttributes.
+func (c *Client) SetContext(ctx *EvaluationContext) error {
+	if ctx != nil && len(ctx.PrivateAttributes) == 0 {
+		// Check custom attributes for PII
+		if ctx.Custom != nil {
+			if err := CheckPIIWithStrictMode(ctx.Custom, "context", c.options.StrictPIIMode, c.logger); err != nil {
+				return err
+			}
+		}
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.context = ctx
+	return nil
 }
 
 // GetContext returns the current global context.
@@ -290,9 +301,15 @@ func (c *Client) ClearContext() {
 }
 
 // Identify identifies a user.
-func (c *Client) Identify(userID string, attributes ...map[string]interface{}) {
+// Returns an error if StrictPIIMode is enabled and PII is detected in attributes.
+func (c *Client) Identify(userID string, attributes ...map[string]interface{}) error {
 	ctx := NewContext(userID)
 	if len(attributes) > 0 {
+		// Security: check for potential PII in attributes
+		if err := CheckPIIWithStrictMode(attributes[0], "context", c.options.StrictPIIMode, c.logger); err != nil {
+			return err
+		}
+
 		for k, v := range attributes[0] {
 			ctx.WithCustom(k, v)
 		}
@@ -307,6 +324,7 @@ func (c *Client) Identify(userID string, attributes ...map[string]interface{}) {
 	c.mu.Unlock()
 
 	c.eventQueue.Track("context.identified", map[string]interface{}{"userId": userID})
+	return nil
 }
 
 // Reset resets to anonymous user.
@@ -319,12 +337,19 @@ func (c *Client) Reset() {
 }
 
 // Track tracks a custom event.
-func (c *Client) Track(eventType string, data ...map[string]interface{}) {
+// Returns an error if StrictPIIMode is enabled and PII is detected in event data.
+func (c *Client) Track(eventType string, data ...map[string]interface{}) error {
 	var eventData map[string]interface{}
 	if len(data) > 0 {
 		eventData = data[0]
+
+		// Security: check for potential PII in event data
+		if err := CheckPIIWithStrictMode(eventData, "event", c.options.StrictPIIMode, c.logger); err != nil {
+			return err
+		}
 	}
 	c.eventQueue.Track(eventType, eventData)
+	return nil
 }
 
 // Flush flushes pending events.

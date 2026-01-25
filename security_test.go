@@ -574,6 +574,324 @@ func TestVerifySignedPayload(t *testing.T) {
 	})
 }
 
+// Tests for strict PII mode integration in client methods
+
+func TestClient_StrictPIIModeEnforcement(t *testing.T) {
+	// Note: These tests verify that the client methods properly enforce
+	// strict PII mode when configured. We use offline mode to avoid
+	// network calls during testing.
+
+	t.Run("Identify returns error in strict mode when PII detected", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		// Attributes containing PII
+		attrs := map[string]interface{}{
+			"email":  "user@example.com",
+			"userId": "user-123",
+		}
+
+		err = client.Identify("user-123", attrs)
+		if err == nil {
+			t.Error("expected error when PII detected in strict mode")
+		}
+
+		fkErr, ok := err.(*FlagKitError)
+		if !ok {
+			t.Errorf("expected FlagKitError, got %T", err)
+		} else if fkErr.Code != ErrSecurityPIIDetected {
+			t.Errorf("expected ErrSecurityPIIDetected, got %s", fkErr.Code)
+		}
+	})
+
+	t.Run("Identify succeeds without PII in strict mode", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		// Safe attributes without PII
+		attrs := map[string]interface{}{
+			"plan":    "premium",
+			"company": "Acme Inc",
+		}
+
+		err = client.Identify("user-123", attrs)
+		if err != nil {
+			t.Errorf("expected no error for safe data, got %v", err)
+		}
+	})
+
+	t.Run("Identify warns but succeeds when not in strict mode", func(t *testing.T) {
+		logger := &mockLogger{}
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithLogger(logger),
+			// No WithStrictPIIMode() - not strict
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		attrs := map[string]interface{}{
+			"email": "user@example.com",
+		}
+
+		err = client.Identify("user-123", attrs)
+		if err != nil {
+			t.Errorf("expected no error in non-strict mode, got %v", err)
+		}
+
+		// Should have logged a warning
+		if len(logger.warnings) == 0 {
+			t.Error("expected warning to be logged")
+		}
+	})
+
+	t.Run("Track returns error in strict mode when PII detected", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		// Event data containing PII
+		eventData := map[string]interface{}{
+			"phone":       "123-456-7890",
+			"productId":   "prod-123",
+		}
+
+		err = client.Track("purchase", eventData)
+		if err == nil {
+			t.Error("expected error when PII detected in strict mode")
+		}
+
+		fkErr, ok := err.(*FlagKitError)
+		if !ok {
+			t.Errorf("expected FlagKitError, got %T", err)
+		} else if fkErr.Code != ErrSecurityPIIDetected {
+			t.Errorf("expected ErrSecurityPIIDetected, got %s", fkErr.Code)
+		}
+	})
+
+	t.Run("Track succeeds without PII in strict mode", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		// Safe event data
+		eventData := map[string]interface{}{
+			"productId": "prod-123",
+			"quantity":  2,
+			"action":    "purchase",
+		}
+
+		err = client.Track("purchase", eventData)
+		if err != nil {
+			t.Errorf("expected no error for safe data, got %v", err)
+		}
+	})
+
+	t.Run("Track warns but succeeds when not in strict mode", func(t *testing.T) {
+		logger := &mockLogger{}
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithLogger(logger),
+			// No WithStrictPIIMode() - not strict
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		eventData := map[string]interface{}{
+			"creditCard": "4111111111111111",
+		}
+
+		err = client.Track("payment", eventData)
+		if err != nil {
+			t.Errorf("expected no error in non-strict mode, got %v", err)
+		}
+
+		// Should have logged a warning
+		if len(logger.warnings) == 0 {
+			t.Error("expected warning to be logged")
+		}
+	})
+
+	t.Run("SetContext returns error in strict mode when PII detected", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		ctx := NewContext("user-123")
+		ctx.WithCustom("ssn", "123-45-6789")
+		ctx.WithCustom("plan", "premium")
+
+		err = client.SetContext(ctx)
+		if err == nil {
+			t.Error("expected error when PII detected in strict mode")
+		}
+
+		fkErr, ok := err.(*FlagKitError)
+		if !ok {
+			t.Errorf("expected FlagKitError, got %T", err)
+		} else if fkErr.Code != ErrSecurityPIIDetected {
+			t.Errorf("expected ErrSecurityPIIDetected, got %s", fkErr.Code)
+		}
+	})
+
+	t.Run("SetContext succeeds without PII in strict mode", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		ctx := NewContext("user-123")
+		ctx.WithCustom("plan", "premium")
+		ctx.WithCustom("company", "Acme Inc")
+
+		err = client.SetContext(ctx)
+		if err != nil {
+			t.Errorf("expected no error for safe data, got %v", err)
+		}
+	})
+
+	t.Run("SetContext warns but succeeds when not in strict mode", func(t *testing.T) {
+		logger := &mockLogger{}
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithLogger(logger),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		ctx := NewContext("user-123")
+		ctx.WithCustom("password", "secret123")
+
+		err = client.SetContext(ctx)
+		if err != nil {
+			t.Errorf("expected no error in non-strict mode, got %v", err)
+		}
+
+		// Should have logged a warning
+		if len(logger.warnings) == 0 {
+			t.Error("expected warning to be logged")
+		}
+	})
+
+	t.Run("SetContext skips PII check when privateAttributes set", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		ctx := NewContext("user-123")
+		ctx.WithCustom("email", "user@example.com")
+		ctx.WithPrivateAttribute("email") // Mark as private, so PII check should be skipped
+
+		err = client.SetContext(ctx)
+		if err != nil {
+			t.Errorf("expected no error when privateAttributes set, got %v", err)
+		}
+	})
+
+	t.Run("Track with nil data succeeds in strict mode", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		err = client.Track("page_view")
+		if err != nil {
+			t.Errorf("expected no error for nil data, got %v", err)
+		}
+	})
+
+	t.Run("SetContext with nil context succeeds in strict mode", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		err = client.SetContext(nil)
+		if err != nil {
+			t.Errorf("expected no error for nil context, got %v", err)
+		}
+	})
+
+	t.Run("Identify without attributes succeeds in strict mode", func(t *testing.T) {
+		client, err := NewClient(
+			"sdk_test_api_key_12345",
+			WithOffline(),
+			WithStrictPIIMode(),
+		)
+		if err != nil {
+			t.Fatalf("failed to create client: %v", err)
+		}
+		defer client.Close()
+
+		err = client.Identify("user-123")
+		if err != nil {
+			t.Errorf("expected no error for identify without attrs, got %v", err)
+		}
+	})
+}
+
 // Helper functions
 
 func contains(slice []string, item string) bool {
