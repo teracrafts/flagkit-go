@@ -132,7 +132,7 @@ func TestWithRetries(t *testing.T) {
 
 func TestWithBootstrap(t *testing.T) {
 	opts := DefaultOptions("sdk_test_key")
-	bootstrap := map[string]interface{}{
+	bootstrap := map[string]any{
 		"feature-flag": true,
 		"variant":      "A",
 	}

@@ -78,7 +78,7 @@ type FlagKitError struct {
 	Message     string
 	Cause       error
 	Recoverable bool
-	Details     map[string]interface{}
+	Details     map[string]any
 }
 
 // Error implements the error interface.
@@ -106,7 +106,7 @@ func NewError(code ErrorCode, message string) *FlagKitError {
 		Code:        code,
 		Message:     message,
 		Recoverable: isRecoverable(code),
-		Details:     make(map[string]interface{}),
+		Details:     make(map[string]any),
 	}
 }
 
@@ -117,12 +117,12 @@ func NewErrorWithCause(code ErrorCode, message string, cause error) *FlagKitErro
 		Message:     message,
 		Cause:       cause,
 		Recoverable: isRecoverable(code),
-		Details:     make(map[string]interface{}),
+		Details:     make(map[string]any),
 	}
 }
 
 // WithDetails adds details to the error.
-func (e *FlagKitError) WithDetails(details map[string]interface{}) *FlagKitError {
+func (e *FlagKitError) WithDetails(details map[string]any) *FlagKitError {
 	for k, v := range details {
 		e.Details[k] = v
 	}

@@ -67,7 +67,7 @@ func TestIsPotentialPIIField(t *testing.T) {
 
 func TestDetectPotentialPII(t *testing.T) {
 	t.Run("detects PII in flat objects", func(t *testing.T) {
-		data := map[string]interface{}{
+		data := map[string]any{
 			"userId": "user-123",
 			"email":  "user@example.com",
 			"plan":   "premium",
@@ -87,12 +87,12 @@ func TestDetectPotentialPII(t *testing.T) {
 	})
 
 	t.Run("detects PII in nested objects", func(t *testing.T) {
-		data := map[string]interface{}{
-			"user": map[string]interface{}{
+		data := map[string]any{
+			"user": map[string]any{
 				"email": "user@example.com",
 				"phone": "123-456-7890",
 			},
-			"settings": map[string]interface{}{
+			"settings": map[string]any{
 				"darkMode": true,
 			},
 		}
@@ -111,9 +111,9 @@ func TestDetectPotentialPII(t *testing.T) {
 	})
 
 	t.Run("handles deeply nested objects", func(t *testing.T) {
-		data := map[string]interface{}{
-			"profile": map[string]interface{}{
-				"contact": map[string]interface{}{
+		data := map[string]any{
+			"profile": map[string]any{
+				"contact": map[string]any{
 					"primaryEmail": "user@example.com",
 				},
 			},
@@ -127,7 +127,7 @@ func TestDetectPotentialPII(t *testing.T) {
 	})
 
 	t.Run("returns empty for safe data", func(t *testing.T) {
-		data := map[string]interface{}{
+		data := map[string]any{
 			"userId": "user-123",
 			"plan":   "premium",
 		}
@@ -143,7 +143,7 @@ func TestDetectPotentialPII(t *testing.T) {
 func TestWarnIfPotentialPII(t *testing.T) {
 	t.Run("logs warning when PII detected", func(t *testing.T) {
 		logger := &mockLogger{}
-		data := map[string]interface{}{
+		data := map[string]any{
 			"email": "user@example.com",
 			"phone": "123-456-7890",
 		}
@@ -160,7 +160,7 @@ func TestWarnIfPotentialPII(t *testing.T) {
 
 	t.Run("does not log when no PII", func(t *testing.T) {
 		logger := &mockLogger{}
-		data := map[string]interface{}{
+		data := map[string]any{
 			"userId": "user-123",
 			"plan":   "premium",
 		}
@@ -182,7 +182,7 @@ func TestWarnIfPotentialPII(t *testing.T) {
 	})
 
 	t.Run("handles nil logger", func(t *testing.T) {
-		data := map[string]interface{}{"email": "test@example.com"}
+		data := map[string]any{"email": "test@example.com"}
 		// Should not panic
 		WarnIfPotentialPII(data, "event", nil)
 	})
@@ -246,7 +246,7 @@ func TestCheckForPotentialPII(t *testing.T) {
 	})
 
 	t.Run("detects PII in context data", func(t *testing.T) {
-		data := map[string]interface{}{
+		data := map[string]any{
 			"email": "user@example.com",
 			"userId": "user-123",
 		}
@@ -263,7 +263,7 @@ func TestCheckForPotentialPII(t *testing.T) {
 	})
 
 	t.Run("detects PII in event data", func(t *testing.T) {
-		data := map[string]interface{}{
+		data := map[string]any{
 			"phone": "123-456-7890",
 		}
 		result := CheckForPotentialPII(data, "event")
@@ -278,7 +278,7 @@ func TestCheckForPotentialPII(t *testing.T) {
 
 func TestCheckPIIWithStrictMode(t *testing.T) {
 	t.Run("returns nil when no PII", func(t *testing.T) {
-		data := map[string]interface{}{"userId": "user-123"}
+		data := map[string]any{"userId": "user-123"}
 		err := CheckPIIWithStrictMode(data, "context", true, nil)
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
@@ -286,7 +286,7 @@ func TestCheckPIIWithStrictMode(t *testing.T) {
 	})
 
 	t.Run("returns error in strict mode when PII detected", func(t *testing.T) {
-		data := map[string]interface{}{"email": "user@example.com"}
+		data := map[string]any{"email": "user@example.com"}
 		err := CheckPIIWithStrictMode(data, "context", true, nil)
 		if err == nil {
 			t.Error("expected error in strict mode")
@@ -302,7 +302,7 @@ func TestCheckPIIWithStrictMode(t *testing.T) {
 
 	t.Run("logs warning when not in strict mode", func(t *testing.T) {
 		logger := &mockLogger{}
-		data := map[string]interface{}{"email": "user@example.com"}
+		data := map[string]any{"email": "user@example.com"}
 		err := CheckPIIWithStrictMode(data, "context", false, logger)
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
@@ -593,7 +593,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		defer client.Close()
 
 		// Attributes containing PII
-		attrs := map[string]interface{}{
+		attrs := map[string]any{
 			"email":  "user@example.com",
 			"userId": "user-123",
 		}
@@ -623,7 +623,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		defer client.Close()
 
 		// Safe attributes without PII
-		attrs := map[string]interface{}{
+		attrs := map[string]any{
 			"plan":    "premium",
 			"company": "Acme Inc",
 		}
@@ -647,7 +647,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		}
 		defer client.Close()
 
-		attrs := map[string]interface{}{
+		attrs := map[string]any{
 			"email": "user@example.com",
 		}
 
@@ -674,7 +674,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		defer client.Close()
 
 		// Event data containing PII
-		eventData := map[string]interface{}{
+		eventData := map[string]any{
 			"phone":       "123-456-7890",
 			"productId":   "prod-123",
 		}
@@ -704,7 +704,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		defer client.Close()
 
 		// Safe event data
-		eventData := map[string]interface{}{
+		eventData := map[string]any{
 			"productId": "prod-123",
 			"quantity":  2,
 			"action":    "purchase",
@@ -729,7 +729,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		}
 		defer client.Close()
 
-		eventData := map[string]interface{}{
+		eventData := map[string]any{
 			"creditCard": "4111111111111111",
 		}
 
@@ -911,18 +911,18 @@ type mockLogger struct {
 	errors   []string
 }
 
-func (l *mockLogger) Debug(msg string, fields ...interface{}) {
+func (l *mockLogger) Debug(msg string, fields ...any) {
 	l.debugs = append(l.debugs, msg)
 }
 
-func (l *mockLogger) Info(msg string, fields ...interface{}) {
+func (l *mockLogger) Info(msg string, fields ...any) {
 	l.infos = append(l.infos, msg)
 }
 
-func (l *mockLogger) Warn(msg string, fields ...interface{}) {
+func (l *mockLogger) Warn(msg string, fields ...any) {
 	l.warnings = append(l.warnings, msg)
 }
 
-func (l *mockLogger) Error(msg string, fields ...interface{}) {
+func (l *mockLogger) Error(msg string, fields ...any) {
 	l.errors = append(l.errors, msg)
 }

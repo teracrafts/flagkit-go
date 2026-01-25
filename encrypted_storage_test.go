@@ -75,10 +75,10 @@ func TestEncryptedStorageEncryptDecrypt(t *testing.T) {
 	})
 
 	t.Run("encrypts and decrypts JSON data", func(t *testing.T) {
-		data := map[string]interface{}{
+		data := map[string]any{
 			"key":   "test-flag",
 			"value": true,
-			"nested": map[string]interface{}{
+			"nested": map[string]any{
 				"foo": "bar",
 			},
 		}

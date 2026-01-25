@@ -14,8 +14,8 @@ type Event struct {
 	SessionID     string                 `json:"sessionId"`
 	EnvironmentID string                 `json:"environmentId"`
 	SDKVersion    string                 `json:"sdkVersion"`
-	Data          map[string]interface{} `json:"data,omitempty"`
-	Context       map[string]interface{} `json:"context,omitempty"`
+	Data          map[string]any `json:"data,omitempty"`
+	Context       map[string]any `json:"context,omitempty"`
 }
 
 // EventPersister is the interface for event persistence.
@@ -32,8 +32,8 @@ type EventPersister interface {
 type PersistedEvent struct {
 	ID        string                 `json:"id"`
 	Type      string                 `json:"type"`
-	Data      map[string]interface{} `json:"data,omitempty"`
-	Context   map[string]interface{} `json:"context,omitempty"`
+	Data      map[string]any `json:"data,omitempty"`
+	Context   map[string]any `json:"context,omitempty"`
 	Timestamp int64                  `json:"timestamp"`
 	Status    string                 `json:"status"`
 	SentAt    int64                  `json:"sentAt,omitempty"`
@@ -147,7 +147,7 @@ func (eq *EventQueue) SetEnvironmentID(id string) {
 }
 
 // Track adds an event to the queue.
-func (eq *EventQueue) Track(eventType string, data map[string]interface{}) {
+func (eq *EventQueue) Track(eventType string, data map[string]any) {
 	eq.mu.Lock()
 	defer eq.mu.Unlock()
 
@@ -209,7 +209,7 @@ func (eq *EventQueue) generateEventID() string {
 }
 
 // TrackWithContext adds an event with context to the queue.
-func (eq *EventQueue) TrackWithContext(eventType string, data map[string]interface{}, ctx *EvaluationContext) {
+func (eq *EventQueue) TrackWithContext(eventType string, data map[string]any, ctx *EvaluationContext) {
 	eq.mu.Lock()
 	defer eq.mu.Unlock()
 
@@ -217,7 +217,7 @@ func (eq *EventQueue) TrackWithContext(eventType string, data map[string]interfa
 		return
 	}
 
-	var contextMap map[string]interface{}
+	var contextMap map[string]any
 	if ctx != nil {
 		contextMap = ctx.StripPrivateAttributes().ToMap()
 	}
@@ -329,7 +329,7 @@ func (eq *EventQueue) sendEvents(events []Event) {
 		}
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"events": events,
 	}
 

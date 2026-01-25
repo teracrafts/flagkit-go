@@ -4,10 +4,10 @@ package internal
 // Logger defines the interface for logging.
 // This mirrors the public Logger interface to avoid import cycles.
 type Logger interface {
-	Debug(msg string, keysAndValues ...interface{})
-	Info(msg string, keysAndValues ...interface{})
-	Warn(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
+	Debug(msg string, keysAndValues ...any)
+	Info(msg string, keysAndValues ...any)
+	Warn(msg string, keysAndValues ...any)
+	Error(msg string, keysAndValues ...any)
 }
 
 // FlagType represents the type of a flag value.
@@ -24,7 +24,7 @@ const (
 // This mirrors the public FlagState to avoid import cycles.
 type FlagState struct {
 	Key          string      `json:"key"`
-	Value        interface{} `json:"value"`
+	Value        any `json:"value"`
 	Enabled      bool        `json:"enabled"`
 	Version      int         `json:"version"`
 	FlagType     FlagType    `json:"flagType"`
@@ -111,7 +111,7 @@ type EvaluationContext struct {
 	DeviceType        string                 `json:"deviceType,omitempty"`
 	OS                string                 `json:"os,omitempty"`
 	Browser           string                 `json:"browser,omitempty"`
-	Custom            map[string]interface{} `json:"custom,omitempty"`
+	Custom            map[string]any `json:"custom,omitempty"`
 	PrivateAttributes []string               `json:"privateAttributes,omitempty"`
 }
 
@@ -120,7 +120,7 @@ func (c *EvaluationContext) StripPrivateAttributes() *EvaluationContext {
 	stripped := &EvaluationContext{
 		UserID:    c.UserID,
 		Anonymous: c.Anonymous,
-		Custom:    make(map[string]interface{}),
+		Custom:    make(map[string]any),
 	}
 
 	privateSet := make(map[string]bool)
@@ -157,8 +157,8 @@ func (c *EvaluationContext) StripPrivateAttributes() *EvaluationContext {
 }
 
 // ToMap converts the context to a map for serialization.
-func (c *EvaluationContext) ToMap() map[string]interface{} {
-	m := make(map[string]interface{})
+func (c *EvaluationContext) ToMap() map[string]any {
+	m := make(map[string]any)
 
 	if c.UserID != "" {
 		m["userId"] = c.UserID

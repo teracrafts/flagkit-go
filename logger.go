@@ -8,10 +8,10 @@ import (
 
 // Logger defines the interface for logging.
 type Logger interface {
-	Debug(msg string, keysAndValues ...interface{})
-	Info(msg string, keysAndValues ...interface{})
-	Warn(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
+	Debug(msg string, keysAndValues ...any)
+	Info(msg string, keysAndValues ...any)
+	Warn(msg string, keysAndValues ...any)
+	Error(msg string, keysAndValues ...any)
 }
 
 // DefaultLogger is the default logger implementation.
@@ -28,7 +28,7 @@ func NewDefaultLogger(debug bool) *DefaultLogger {
 	}
 }
 
-func (l *DefaultLogger) formatMessage(level, msg string, keysAndValues ...interface{}) string {
+func (l *DefaultLogger) formatMessage(level, msg string, keysAndValues ...any) string {
 	if len(keysAndValues) == 0 {
 		return fmt.Sprintf("%s %s", level, msg)
 	}
@@ -43,24 +43,24 @@ func (l *DefaultLogger) formatMessage(level, msg string, keysAndValues ...interf
 }
 
 // Debug logs a debug message.
-func (l *DefaultLogger) Debug(msg string, keysAndValues ...interface{}) {
+func (l *DefaultLogger) Debug(msg string, keysAndValues ...any) {
 	if l.debug {
 		l.logger.Println(l.formatMessage("DEBUG", msg, keysAndValues...))
 	}
 }
 
 // Info logs an info message.
-func (l *DefaultLogger) Info(msg string, keysAndValues ...interface{}) {
+func (l *DefaultLogger) Info(msg string, keysAndValues ...any) {
 	l.logger.Println(l.formatMessage("INFO", msg, keysAndValues...))
 }
 
 // Warn logs a warning message.
-func (l *DefaultLogger) Warn(msg string, keysAndValues ...interface{}) {
+func (l *DefaultLogger) Warn(msg string, keysAndValues ...any) {
 	l.logger.Println(l.formatMessage("WARN", msg, keysAndValues...))
 }
 
 // Error logs an error message.
-func (l *DefaultLogger) Error(msg string, keysAndValues ...interface{}) {
+func (l *DefaultLogger) Error(msg string, keysAndValues ...any) {
 	l.logger.Println(l.formatMessage("ERROR", msg, keysAndValues...))
 }
 
@@ -68,13 +68,13 @@ func (l *DefaultLogger) Error(msg string, keysAndValues ...interface{}) {
 type NullLogger struct{}
 
 // Debug does nothing.
-func (l *NullLogger) Debug(msg string, keysAndValues ...interface{}) {}
+func (l *NullLogger) Debug(msg string, keysAndValues ...any) {}
 
 // Info does nothing.
-func (l *NullLogger) Info(msg string, keysAndValues ...interface{}) {}
+func (l *NullLogger) Info(msg string, keysAndValues ...any) {}
 
 // Warn does nothing.
-func (l *NullLogger) Warn(msg string, keysAndValues ...interface{}) {}
+func (l *NullLogger) Warn(msg string, keysAndValues ...any) {}
 
 // Error does nothing.
-func (l *NullLogger) Error(msg string, keysAndValues ...interface{}) {}
+func (l *NullLogger) Error(msg string, keysAndValues ...any) {}

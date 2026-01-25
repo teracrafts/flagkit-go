@@ -25,7 +25,7 @@ func TestEventQueueTrack(t *testing.T) {
 		Logger:     &NullLogger{},
 	})
 
-	eq.Track("test_event", map[string]interface{}{"key": "value"})
+	eq.Track("test_event", map[string]any{"key": "value"})
 
 	assert.Equal(t, 1, eq.QueueSize())
 }
@@ -88,7 +88,7 @@ func TestEventQueueTrackWithContext(t *testing.T) {
 		WithEmail("user@example.com").
 		WithPrivateAttribute("email")
 
-	eq.TrackWithContext("test_event", map[string]interface{}{"action": "click"}, ctx)
+	eq.TrackWithContext("test_event", map[string]any{"action": "click"}, ctx)
 
 	assert.Equal(t, 1, eq.QueueSize())
 }

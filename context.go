@@ -10,7 +10,7 @@ type EvaluationContext struct {
 	DeviceType        string                 `json:"deviceType,omitempty"`
 	OS                string                 `json:"os,omitempty"`
 	Browser           string                 `json:"browser,omitempty"`
-	Custom            map[string]interface{} `json:"custom,omitempty"`
+	Custom            map[string]any `json:"custom,omitempty"`
 	PrivateAttributes []string               `json:"privateAttributes,omitempty"`
 }
 
@@ -18,7 +18,7 @@ type EvaluationContext struct {
 func NewContext(userID string) *EvaluationContext {
 	return &EvaluationContext{
 		UserID: userID,
-		Custom: make(map[string]interface{}),
+		Custom: make(map[string]any),
 	}
 }
 
@@ -26,7 +26,7 @@ func NewContext(userID string) *EvaluationContext {
 func NewAnonymousContext() *EvaluationContext {
 	return &EvaluationContext{
 		Anonymous: true,
-		Custom:    make(map[string]interface{}),
+		Custom:    make(map[string]any),
 	}
 }
 
@@ -67,9 +67,9 @@ func (c *EvaluationContext) WithBrowser(browser string) *EvaluationContext {
 }
 
 // WithCustom sets a custom attribute and returns the context.
-func (c *EvaluationContext) WithCustom(key string, value interface{}) *EvaluationContext {
+func (c *EvaluationContext) WithCustom(key string, value any) *EvaluationContext {
 	if c.Custom == nil {
-		c.Custom = make(map[string]interface{})
+		c.Custom = make(map[string]any)
 	}
 	c.Custom[key] = value
 	return c
@@ -97,7 +97,7 @@ func (c *EvaluationContext) Merge(other *EvaluationContext) *EvaluationContext {
 		DeviceType:        c.DeviceType,
 		OS:                c.OS,
 		Browser:           c.Browser,
-		Custom:            make(map[string]interface{}),
+		Custom:            make(map[string]any),
 		PrivateAttributes: make([]string, 0),
 	}
 
@@ -157,7 +157,7 @@ func (c *EvaluationContext) StripPrivateAttributes() *EvaluationContext {
 	stripped := &EvaluationContext{
 		UserID:    c.UserID,
 		Anonymous: c.Anonymous,
-		Custom:    make(map[string]interface{}),
+		Custom:    make(map[string]any),
 	}
 
 	privateSet := make(map[string]bool)
@@ -204,7 +204,7 @@ func (c *EvaluationContext) Copy() *EvaluationContext {
 		DeviceType:        c.DeviceType,
 		OS:                c.OS,
 		Browser:           c.Browser,
-		Custom:            make(map[string]interface{}),
+		Custom:            make(map[string]any),
 		PrivateAttributes: make([]string, len(c.PrivateAttributes)),
 	}
 
@@ -217,8 +217,8 @@ func (c *EvaluationContext) Copy() *EvaluationContext {
 }
 
 // ToMap converts the context to a map for serialization.
-func (c *EvaluationContext) ToMap() map[string]interface{} {
-	m := make(map[string]interface{})
+func (c *EvaluationContext) ToMap() map[string]any {
+	m := make(map[string]any)
 
 	if c.UserID != "" {
 		m["userId"] = c.UserID

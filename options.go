@@ -67,7 +67,7 @@ type Options struct {
 	Retries int
 
 	// Bootstrap provides initial flag values.
-	Bootstrap map[string]interface{}
+	Bootstrap map[string]any
 
 	// Debug enables debug logging.
 	Debug bool
@@ -133,7 +133,7 @@ func DefaultOptions(apiKey string) *Options {
 		Offline:                false,
 		Timeout:                DefaultTimeout,
 		Retries:                DefaultRetries,
-		Bootstrap:              make(map[string]interface{}),
+		Bootstrap:              make(map[string]any),
 		Debug:                  false,
 		KeyRotationGracePeriod: DefaultKeyRotationGracePeriod,
 		EnableRequestSigning:   true,
@@ -242,7 +242,7 @@ func WithRetries(n int) OptionFunc {
 }
 
 // WithBootstrap sets bootstrap values.
-func WithBootstrap(values map[string]interface{}) OptionFunc {
+func WithBootstrap(values map[string]any) OptionFunc {
 	return func(o *Options) {
 		o.Bootstrap = values
 	}

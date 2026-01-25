@@ -56,7 +56,7 @@ type HTTPResponse struct {
 	StatusCode int
 	Headers    http.Header
 	Body       []byte
-	Data       interface{}
+	Data       any
 }
 
 // NewHTTPClient creates a new HTTP client.
@@ -192,17 +192,17 @@ func (c *HTTPClient) GetWithContext(ctx context.Context, path string) (*HTTPResp
 }
 
 // Post performs a POST request with automatic signing.
-func (c *HTTPClient) Post(path string, body interface{}) (*HTTPResponse, error) {
+func (c *HTTPClient) Post(path string, body any) (*HTTPResponse, error) {
 	return c.postWithKeyRotation(context.Background(), path, body)
 }
 
 // PostWithContext performs a POST request with context and automatic signing.
-func (c *HTTPClient) PostWithContext(ctx context.Context, path string, body interface{}) (*HTTPResponse, error) {
+func (c *HTTPClient) PostWithContext(ctx context.Context, path string, body any) (*HTTPResponse, error) {
 	return c.postWithKeyRotation(ctx, path, body)
 }
 
 // postWithKeyRotation performs a POST request with key rotation support.
-func (c *HTTPClient) postWithKeyRotation(ctx context.Context, path string, body interface{}) (*HTTPResponse, error) {
+func (c *HTTPClient) postWithKeyRotation(ctx context.Context, path string, body any) (*HTTPResponse, error) {
 	resp, err := c.request(ctx, http.MethodPost, path, body)
 
 	// Handle 401 errors with key rotation
@@ -223,7 +223,7 @@ func (c *HTTPClient) postWithKeyRotation(ctx context.Context, path string, body 
 }
 
 // request performs an HTTP request with retry and circuit breaker.
-func (c *HTTPClient) request(ctx context.Context, method, path string, body interface{}) (*HTTPResponse, error) {
+func (c *HTTPClient) request(ctx context.Context, method, path string, body any) (*HTTPResponse, error) {
 	// Check circuit breaker
 	if !c.circuitBreaker.Allow() {
 		return nil, NewError(ErrCircuitOpen, "circuit breaker is open")
@@ -276,7 +276,7 @@ func (c *HTTPClient) request(ctx context.Context, method, path string, body inte
 }
 
 // doRequest performs a single HTTP request.
-func (c *HTTPClient) doRequest(ctx context.Context, method, path string, body interface{}) (*HTTPResponse, error) {
+func (c *HTTPClient) doRequest(ctx context.Context, method, path string, body any) (*HTTPResponse, error) {
 	url := c.baseURL + path
 
 	var bodyReader io.Reader
@@ -337,7 +337,7 @@ func (c *HTTPClient) doRequest(ctx context.Context, method, path string, body in
 
 	// Parse JSON response
 	if len(respBody) > 0 {
-		var data interface{}
+		var data any
 		if err := json.Unmarshal(respBody, &data); err == nil {
 			response.Data = data
 		}

@@ -258,7 +258,7 @@ func (c *Client) GetIntValue(key string, defaultValue int, ctx ...*EvaluationCon
 }
 
 // GetJSONValue evaluates a JSON flag.
-func (c *Client) GetJSONValue(key string, defaultValue map[string]interface{}, ctx ...*EvaluationContext) map[string]interface{} {
+func (c *Client) GetJSONValue(key string, defaultValue map[string]any, ctx ...*EvaluationContext) map[string]any {
 	result := c.evaluate(key, defaultValue, getContext(ctx), FlagTypeJSON)
 	if v := result.JSONValue(); v != nil {
 		return v
@@ -340,7 +340,7 @@ func (c *Client) ClearContext() {
 
 // Identify identifies a user.
 // Returns an error if StrictPIIMode is enabled and PII is detected in attributes.
-func (c *Client) Identify(userID string, attributes ...map[string]interface{}) error {
+func (c *Client) Identify(userID string, attributes ...map[string]any) error {
 	ctx := NewContext(userID)
 	if len(attributes) > 0 {
 		// Security: check for potential PII in attributes
@@ -361,7 +361,7 @@ func (c *Client) Identify(userID string, attributes ...map[string]interface{}) e
 	}
 	c.mu.Unlock()
 
-	c.eventQueue.Track("context.identified", map[string]interface{}{"userId": userID})
+	c.eventQueue.Track("context.identified", map[string]any{"userId": userID})
 	return nil
 }
 
@@ -376,8 +376,8 @@ func (c *Client) Reset() {
 
 // Track tracks a custom event.
 // Returns an error if StrictPIIMode is enabled and PII is detected in event data.
-func (c *Client) Track(eventType string, data ...map[string]interface{}) error {
-	var eventData map[string]interface{}
+func (c *Client) Track(eventType string, data ...map[string]any) error {
+	var eventData map[string]any
 	if len(data) > 0 {
 		eventData = data[0]
 
@@ -439,7 +439,7 @@ func (c *Client) Close() error {
 }
 
 // evaluate performs flag evaluation.
-func (c *Client) evaluate(key string, defaultValue interface{}, ctx *EvaluationContext, expectedType FlagType) *EvaluationResult {
+func (c *Client) evaluate(key string, defaultValue any, ctx *EvaluationContext, expectedType FlagType) *EvaluationResult {
 	// Validate key
 	if key == "" {
 		c.logger.Warn("Invalid flag key", "key", key)

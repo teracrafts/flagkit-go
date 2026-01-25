@@ -33,7 +33,7 @@ const (
 // FlagState represents the state of a feature flag.
 type FlagState struct {
 	Key          string      `json:"key"`
-	Value        interface{} `json:"value"`
+	Value        any `json:"value"`
 	Enabled      bool        `json:"enabled"`
 	Version      int         `json:"version"`
 	FlagType     FlagType    `json:"flagType"`
@@ -43,7 +43,7 @@ type FlagState struct {
 // EvaluationResult represents the result of evaluating a flag.
 type EvaluationResult struct {
 	FlagKey   string           `json:"flagKey"`
-	Value     interface{}      `json:"value"`
+	Value     any      `json:"value"`
 	Enabled   bool             `json:"enabled"`
 	Reason    EvaluationReason `json:"reason"`
 	Version   int              `json:"version"`
@@ -100,8 +100,8 @@ func (r *EvaluationResult) IntValue() int {
 }
 
 // JSONValue returns the value as a map.
-func (r *EvaluationResult) JSONValue() map[string]interface{} {
-	if v, ok := r.Value.(map[string]interface{}); ok {
+func (r *EvaluationResult) JSONValue() map[string]any {
+	if v, ok := r.Value.(map[string]any); ok {
 		return v
 	}
 	return nil
@@ -134,7 +134,7 @@ type EventsBatchResponse struct {
 }
 
 // createDefaultResult creates a default evaluation result.
-func createDefaultResult(key string, defaultValue interface{}, reason EvaluationReason) *EvaluationResult {
+func createDefaultResult(key string, defaultValue any, reason EvaluationReason) *EvaluationResult {
 	return &EvaluationResult{
 		FlagKey:   key,
 		Value:     defaultValue,
@@ -164,7 +164,7 @@ func ParseUpdatesResponse(data []byte) (*UpdatesResponse, error) {
 }
 
 // InferFlagType infers the flag type from a value.
-func InferFlagType(value interface{}) FlagType {
+func InferFlagType(value any) FlagType {
 	switch value.(type) {
 	case bool:
 		return FlagTypeBoolean

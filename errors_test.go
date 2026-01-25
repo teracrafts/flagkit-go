@@ -72,7 +72,7 @@ func TestFlagKitErrorIs(t *testing.T) {
 
 func TestWithDetails(t *testing.T) {
 	err := NewError(ErrEvalFlagNotFound, "flag not found").
-		WithDetails(map[string]interface{}{
+		WithDetails(map[string]any{
 			"flagKey": "my-flag",
 			"reason":  "not in cache",
 		})

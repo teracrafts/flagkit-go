@@ -95,7 +95,7 @@ func TestContextToMap(t *testing.T) {
 	assert.Equal(t, "user-123", m["userId"])
 	assert.Equal(t, "user@example.com", m["email"])
 
-	custom := m["custom"].(map[string]interface{})
+	custom := m["custom"].(map[string]any)
 	assert.Equal(t, "premium", custom["plan"])
 }
 

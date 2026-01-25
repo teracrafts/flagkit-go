@@ -79,7 +79,7 @@ func IsPotentialPIIField(fieldName string) bool {
 }
 
 // DetectPotentialPII detects potential PII fields in a map and returns field paths.
-func DetectPotentialPII(data map[string]interface{}, prefix string) []string {
+func DetectPotentialPII(data map[string]any, prefix string) []string {
 	var piiFields []string
 
 	for key, value := range data {
@@ -93,7 +93,7 @@ func DetectPotentialPII(data map[string]interface{}, prefix string) []string {
 		}
 
 		// Recursively check nested maps
-		if nestedMap, ok := value.(map[string]interface{}); ok {
+		if nestedMap, ok := value.(map[string]any); ok {
 			nestedPII := DetectPotentialPII(nestedMap, fullPath)
 			piiFields = append(piiFields, nestedPII...)
 		}
@@ -103,7 +103,7 @@ func DetectPotentialPII(data map[string]interface{}, prefix string) []string {
 }
 
 // WarnIfPotentialPII logs a warning if potential PII is detected in data.
-func WarnIfPotentialPII(data map[string]interface{}, dataType string, logger Logger) {
+func WarnIfPotentialPII(data map[string]any, dataType string, logger Logger) {
 	if data == nil || logger == nil {
 		return
 	}
@@ -207,7 +207,7 @@ type PIIDetectionResult struct {
 }
 
 // CheckForPotentialPII checks for potential PII in data and returns detailed result.
-func CheckForPotentialPII(data map[string]interface{}, dataType string) PIIDetectionResult {
+func CheckForPotentialPII(data map[string]any, dataType string) PIIDetectionResult {
 	if data == nil {
 		return PIIDetectionResult{HasPII: false, Fields: nil, Message: ""}
 	}
@@ -238,7 +238,7 @@ func CheckForPotentialPII(data map[string]interface{}, dataType string) PIIDetec
 }
 
 // CheckPIIWithStrictMode checks for PII and returns error if strict mode is enabled.
-func CheckPIIWithStrictMode(data map[string]interface{}, dataType string, strictMode bool, logger Logger) error {
+func CheckPIIWithStrictMode(data map[string]any, dataType string, strictMode bool, logger Logger) error {
 	result := CheckForPotentialPII(data, dataType)
 
 	if !result.HasPII {
@@ -290,7 +290,7 @@ func GetKeyID(apiKey string) string {
 
 // SignedPayload represents a payload with HMAC-SHA256 signature.
 type SignedPayload struct {
-	Data      interface{} `json:"data"`
+	Data      any `json:"data"`
 	Signature string      `json:"signature"`
 	Timestamp int64       `json:"timestamp"`
 	KeyID     string      `json:"keyId"`
@@ -346,7 +346,7 @@ func VerifyRequestSignature(body, signature string, timestamp int64, apiKey stri
 }
 
 // SignPayload signs a payload with HMAC-SHA256.
-func SignPayload(data interface{}, apiKey string, timestamp int64) SignedPayload {
+func SignPayload(data any, apiKey string, timestamp int64) SignedPayload {
 	if timestamp == 0 {
 		timestamp = time.Now().UnixMilli()
 	}

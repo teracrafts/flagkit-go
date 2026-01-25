@@ -176,11 +176,11 @@ func (cb *CircuitBreaker) transitionTo(newState CircuitState) {
 }
 
 // Stats returns circuit breaker statistics.
-func (cb *CircuitBreaker) Stats() map[string]interface{} {
+func (cb *CircuitBreaker) Stats() map[string]any {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
 
-	return map[string]interface{}{
+	return map[string]any{
 		"state":                 cb.state.String(),
 		"failures":              cb.failures,
 		"successes":             cb.successes,

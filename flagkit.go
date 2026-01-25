@@ -14,10 +14,10 @@
 //	variant := client.GetStringValue("button-text", "Click")
 //
 //	// Identify user
-//	client.Identify("user-123", map[string]interface{}{"plan": "premium"})
+//	client.Identify("user-123", map[string]any{"plan": "premium"})
 //
 //	// Track events
-//	client.Track("button_clicked", map[string]interface{}{"button": "signup"})
+//	client.Track("button_clicked", map[string]any{"button": "signup"})
 package flagkit
 
 import (
@@ -105,7 +105,7 @@ func GetIntValue(key string, defaultValue int) int {
 }
 
 // GetJSONValue evaluates a JSON flag using the singleton client.
-func GetJSONValue(key string, defaultValue map[string]interface{}) map[string]interface{} {
+func GetJSONValue(key string, defaultValue map[string]any) map[string]any {
 	return mustGetClient().GetJSONValue(key, defaultValue)
 }
 
@@ -120,7 +120,7 @@ func HasFlag(key string) bool {
 }
 
 // Identify identifies a user using the singleton client.
-func Identify(userID string, attributes ...map[string]interface{}) {
+func Identify(userID string, attributes ...map[string]any) {
 	mustGetClient().Identify(userID, attributes...)
 }
 
@@ -130,7 +130,7 @@ func Reset() {
 }
 
 // Track tracks a custom event using the singleton client.
-func Track(eventType string, data ...map[string]interface{}) {
+func Track(eventType string, data ...map[string]any) {
 	mustGetClient().Track(eventType, data...)
 }
 

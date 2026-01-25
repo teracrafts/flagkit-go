@@ -45,7 +45,7 @@ func TestEventPersistence_Persist(t *testing.T) {
 		Type:      "test.event",
 		Timestamp: time.Now().UnixMilli(),
 		Status:    EventStatusPending,
-		Data:      map[string]interface{}{"key": "value"},
+		Data:      map[string]any{"key": "value"},
 	}
 
 	err = ep.Persist(event)
@@ -395,8 +395,8 @@ func TestEventPersistence_EventWithContext(t *testing.T) {
 		Type:      "test.withcontext",
 		Timestamp: time.Now().UnixMilli(),
 		Status:    EventStatusPending,
-		Data:      map[string]interface{}{"action": "click"},
-		Context:   map[string]interface{}{"userId": "user123", "country": "US"},
+		Data:      map[string]any{"action": "click"},
+		Context:   map[string]any{"userId": "user123", "country": "US"},
 	}
 
 	err = ep.Persist(event)

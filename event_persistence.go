@@ -37,8 +37,8 @@ const (
 type PersistedEvent struct {
 	ID        string                 `json:"id"`
 	Type      string                 `json:"type"`
-	Data      map[string]interface{} `json:"data,omitempty"`
-	Context   map[string]interface{} `json:"context,omitempty"`
+	Data      map[string]any `json:"data,omitempty"`
+	Context   map[string]any `json:"context,omitempty"`
 	Timestamp int64                  `json:"timestamp"`
 	Status    EventStatus            `json:"status"`
 	SentAt    int64                  `json:"sentAt,omitempty"`
@@ -263,7 +263,7 @@ func (ep *EventPersistence) MarkSent(eventIDs []string) error {
 
 	sentAt := time.Now().UnixMilli()
 	for _, id := range eventIDs {
-		update := map[string]interface{}{
+		update := map[string]any{
 			"id":     id,
 			"status": EventStatusSent,
 			"sentAt": sentAt,
@@ -314,7 +314,7 @@ func (ep *EventPersistence) MarkSending(eventIDs []string) error {
 	defer file.Close()
 
 	for _, id := range eventIDs {
-		update := map[string]interface{}{
+		update := map[string]any{
 			"id":     id,
 			"status": EventStatusSending,
 		}
@@ -363,7 +363,7 @@ func (ep *EventPersistence) MarkFailed(eventIDs []string) error {
 	defer file.Close()
 
 	for _, id := range eventIDs {
-		update := map[string]interface{}{
+		update := map[string]any{
 			"id":     id,
 			"status": EventStatusFailed,
 		}
@@ -619,19 +619,19 @@ func generateRandomString(length int) string {
 }
 
 // Logging helpers
-func (ep *EventPersistence) logDebug(msg string, keysAndValues ...interface{}) {
+func (ep *EventPersistence) logDebug(msg string, keysAndValues ...any) {
 	if ep.logger != nil {
 		ep.logger.Debug(msg, keysAndValues...)
 	}
 }
 
-func (ep *EventPersistence) logInfo(msg string, keysAndValues ...interface{}) {
+func (ep *EventPersistence) logInfo(msg string, keysAndValues ...any) {
 	if ep.logger != nil {
 		ep.logger.Info(msg, keysAndValues...)
 	}
 }
 
-func (ep *EventPersistence) logWarn(msg string, keysAndValues ...interface{}) {
+func (ep *EventPersistence) logWarn(msg string, keysAndValues ...any) {
 	if ep.logger != nil {
 		ep.logger.Warn(msg, keysAndValues...)
 	}

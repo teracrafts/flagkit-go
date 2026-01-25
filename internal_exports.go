@@ -146,7 +146,7 @@ func NewEventQueue(opts *EventQueueOptions) *EventQueue {
 }
 
 // TrackWithContext adds an event with context to the queue.
-func (eq *EventQueue) TrackWithContext(eventType string, data map[string]interface{}, ctx *EvaluationContext) {
+func (eq *EventQueue) TrackWithContext(eventType string, data map[string]any, ctx *EvaluationContext) {
 	eq.EventQueue.TrackWithContext(eventType, data, publicToInternalContext(ctx))
 }
 
