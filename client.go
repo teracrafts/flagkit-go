@@ -14,18 +14,19 @@ func init() {
 
 // Client is the FlagKit SDK client.
 type Client struct {
-	options        *Options
-	cache          *internal.Cache
-	httpClient     *internal.HTTPClient
-	eventQueue     *internal.EventQueue
-	pollingManager *internal.PollingManager
-	context        *EvaluationContext
-	sessionID      string
-	lastUpdateTime string
-	ready          bool
-	closed         bool
-	logger         Logger
-	mu             sync.RWMutex
+	options          *Options
+	cache            *internal.Cache
+	httpClient       *internal.HTTPClient
+	eventQueue       *internal.EventQueue
+	pollingManager   *internal.PollingManager
+	eventPersistence *EventPersistence
+	context          *EvaluationContext
+	sessionID        string
+	lastUpdateTime   string
+	ready            bool
+	closed           bool
+	logger           Logger
+	mu               sync.RWMutex
 }
 
 // NewClient creates a new FlagKit client.
@@ -82,21 +83,58 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 		LocalPort: options.LocalPort,
 	})
 
-	// Create event queue
-	eventQueue := internal.NewEventQueue(&internal.EventQueueOptions{
-		HTTPClient: httpClient,
-		SessionID:  sessionID,
-		SDKVersion: SDKVersion,
-		Logger:     logger,
-	})
+	// Create event persistence if enabled
+	var eventPersistence *EventPersistence
+	var persisterAdapter *EventPersisterAdapter
+	if options.PersistEvents {
+		storagePath := options.EventStoragePath
+		maxEvents := options.MaxPersistedEvents
+		if maxEvents <= 0 {
+			maxEvents = DefaultMaxPersistedEvents
+		}
+		flushInterval := options.PersistenceFlushInterval
+		if flushInterval <= 0 {
+			flushInterval = DefaultPersistenceFlushInterval
+		}
+
+		var err error
+		eventPersistence, err = NewEventPersistence(storagePath, maxEvents, flushInterval, logger)
+		if err != nil {
+			logger.Warn("Failed to create event persistence", "error", err.Error())
+		} else {
+			persisterAdapter = NewEventPersisterAdapter(eventPersistence)
+			eventPersistence.Start()
+		}
+	}
+
+	// Create event queue with persistence support
+	eventQueueOpts := &internal.EventQueueOptions{
+		HTTPClient:     httpClient,
+		SessionID:      sessionID,
+		SDKVersion:     SDKVersion,
+		Logger:         logger,
+		PersistEnabled: options.PersistEvents && persisterAdapter != nil,
+	}
+	if persisterAdapter != nil {
+		eventQueueOpts.Persister = persisterAdapter
+	}
+	eventQueue := internal.NewEventQueue(eventQueueOpts)
+
+	// Recover events if persistence is enabled
+	if eventPersistence != nil {
+		if err := eventQueue.RecoverEvents(); err != nil {
+			logger.Warn("Failed to recover persisted events", "error", err.Error())
+		}
+	}
 
 	client := &Client{
-		options:    options,
-		cache:      cache,
-		httpClient: httpClient,
-		eventQueue: eventQueue,
-		sessionID:  sessionID,
-		logger:     logger,
+		options:          options,
+		cache:            cache,
+		httpClient:       httpClient,
+		eventQueue:       eventQueue,
+		eventPersistence: eventPersistence,
+		sessionID:        sessionID,
+		logger:           logger,
 	}
 
 	// Apply bootstrap values
@@ -385,6 +423,13 @@ func (c *Client) Close() error {
 
 	// Flush and stop events
 	c.eventQueue.Stop()
+
+	// Close event persistence
+	if c.eventPersistence != nil {
+		if err := c.eventPersistence.Close(); err != nil {
+			c.logger.Warn("Failed to close event persistence", "error", err.Error())
+		}
+	}
 
 	// Close HTTP client
 	c.httpClient.Close()
