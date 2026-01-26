@@ -1,4 +1,4 @@
-package internal
+package http
 
 import (
 	"bytes"
@@ -13,7 +13,35 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/flagkit/flagkit-go/internal/types"
 )
+
+// Logger is an alias for the types.Logger interface.
+type Logger = types.Logger
+
+// FlagKitError is an alias for the types.FlagKitError type.
+type FlagKitError = types.FlagKitError
+
+// Error codes (re-exported from types for convenience)
+const (
+	ErrCircuitOpen       = types.ErrCircuitOpen
+	ErrNetworkError      = types.ErrNetworkError
+	ErrNetworkTimeout    = types.ErrNetworkTimeout
+	ErrNetworkRetryLimit = types.ErrNetworkRetryLimit
+	ErrAuthUnauthorized  = types.ErrAuthUnauthorized
+	ErrAuthInvalidKey    = types.ErrAuthInvalidKey
+	ErrEvalFlagNotFound  = types.ErrEvalFlagNotFound
+)
+
+// NewError creates a new FlagKitError.
+var NewError = types.NewError
+
+// NewErrorWithCause creates a new FlagKitError with a cause.
+var NewErrorWithCause = types.NewErrorWithCause
+
+// NetworkError creates a network error.
+var NetworkError = types.NetworkError
 
 // SDKVersion should be set by the main package.
 var SDKVersion = "1.0.0"
