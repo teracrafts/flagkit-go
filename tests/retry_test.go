@@ -1,9 +1,10 @@
-package flagkit
+package tests
 
 import (
 	"testing"
 	"time"
 
+	. "github.com/flagkit/flagkit-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,19 +17,19 @@ func TestCalculateBackoff(t *testing.T) {
 	}
 
 	// First retry (attempt=1): 1s * 2^0 = 1s
-	delay := calculateBackoff(1, config)
+	delay := CalculateBackoff(1, config)
 	assert.Equal(t, time.Second, delay)
 
 	// Second retry (attempt=2): 1s * 2^1 = 2s
-	delay = calculateBackoff(2, config)
+	delay = CalculateBackoff(2, config)
 	assert.Equal(t, 2*time.Second, delay)
 
 	// Third retry (attempt=3): 1s * 2^2 = 4s
-	delay = calculateBackoff(3, config)
+	delay = CalculateBackoff(3, config)
 	assert.Equal(t, 4*time.Second, delay)
 
 	// Should cap at max delay (attempt=10: 1s * 2^9 = 512s > 30s)
-	delay = calculateBackoff(10, config)
+	delay = CalculateBackoff(10, config)
 	assert.Equal(t, 30*time.Second, delay)
 }
 
@@ -40,7 +41,7 @@ func TestCalculateBackoffWithJitter(t *testing.T) {
 		Jitter:            500 * time.Millisecond,
 	}
 
-	delay := calculateBackoff(1, config)
+	delay := CalculateBackoff(1, config)
 	// Should be between 1s and 1.5s
 	assert.GreaterOrEqual(t, delay, time.Second)
 	assert.LessOrEqual(t, delay, time.Second+500*time.Millisecond)
