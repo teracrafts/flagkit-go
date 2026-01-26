@@ -1,7 +1,28 @@
-package flagkit
+package config
 
 import (
 	"time"
+
+	"github.com/flagkit/flagkit-go/errors"
+	"github.com/flagkit/flagkit-go/types"
+)
+
+// Type aliases for convenience
+type Logger = types.Logger
+type FlagState = types.FlagState
+type ErrorSanitizationConfig = errors.ErrorSanitizationConfig
+type NullLogger = types.NullLogger
+
+// Error function aliases
+var (
+	NewError = errors.NewError
+)
+
+// Error code aliases
+const (
+	ErrConfigMissingRequired = errors.ErrConfigMissingRequired
+	ErrConfigInvalidInterval = errors.ErrConfigInvalidInterval
+	ErrAuthInvalidKey        = errors.ErrAuthInvalidKey
 )
 
 const (
