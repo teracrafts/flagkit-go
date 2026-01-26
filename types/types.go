@@ -1,4 +1,4 @@
-package flagkit
+package types
 
 import (
 	"encoding/json"
