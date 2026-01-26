@@ -1,4 +1,4 @@
-package flagkit
+package config
 
 import (
 	"testing"
