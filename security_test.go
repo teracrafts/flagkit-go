@@ -318,37 +318,37 @@ func TestIsProductionEnvironment(t *testing.T) {
 	originalGoEnv := os.Getenv("GO_ENV")
 	originalAppEnv := os.Getenv("APP_ENV")
 	defer func() {
-		os.Setenv("GO_ENV", originalGoEnv)
-		os.Setenv("APP_ENV", originalAppEnv)
+		_ = os.Setenv("GO_ENV", originalGoEnv)
+		_ = os.Setenv("APP_ENV", originalAppEnv)
 	}()
 
 	t.Run("returns false when no env set", func(t *testing.T) {
-		os.Unsetenv("GO_ENV")
-		os.Unsetenv("APP_ENV")
+		_ = os.Unsetenv("GO_ENV")
+		_ = os.Unsetenv("APP_ENV")
 		if IsProductionEnvironment() {
 			t.Error("expected false when no env set")
 		}
 	})
 
 	t.Run("returns true for GO_ENV=production", func(t *testing.T) {
-		os.Setenv("GO_ENV", "production")
-		os.Unsetenv("APP_ENV")
+		_ = os.Setenv("GO_ENV", "production")
+		_ = os.Unsetenv("APP_ENV")
 		if !IsProductionEnvironment() {
 			t.Error("expected true for GO_ENV=production")
 		}
 	})
 
 	t.Run("returns true for APP_ENV=production", func(t *testing.T) {
-		os.Unsetenv("GO_ENV")
-		os.Setenv("APP_ENV", "production")
+		_ = os.Unsetenv("GO_ENV")
+		_ = os.Setenv("APP_ENV", "production")
 		if !IsProductionEnvironment() {
 			t.Error("expected true for APP_ENV=production")
 		}
 	})
 
 	t.Run("case insensitive", func(t *testing.T) {
-		os.Setenv("GO_ENV", "PRODUCTION")
-		os.Unsetenv("APP_ENV")
+		_ = os.Setenv("GO_ENV", "PRODUCTION")
+		_ = os.Unsetenv("APP_ENV")
 		if !IsProductionEnvironment() {
 			t.Error("expected true for GO_ENV=PRODUCTION (case insensitive)")
 		}
@@ -360,13 +360,13 @@ func TestValidateLocalPort(t *testing.T) {
 	originalGoEnv := os.Getenv("GO_ENV")
 	originalAppEnv := os.Getenv("APP_ENV")
 	defer func() {
-		os.Setenv("GO_ENV", originalGoEnv)
-		os.Setenv("APP_ENV", originalAppEnv)
+		_ = os.Setenv("GO_ENV", originalGoEnv)
+		_ = os.Setenv("APP_ENV", originalAppEnv)
 	}()
 
 	t.Run("allows localPort in non-production", func(t *testing.T) {
-		os.Setenv("GO_ENV", "development")
-		os.Unsetenv("APP_ENV")
+		_ = os.Setenv("GO_ENV", "development")
+		_ = os.Unsetenv("APP_ENV")
 		err := ValidateLocalPort(8080)
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
@@ -374,8 +374,8 @@ func TestValidateLocalPort(t *testing.T) {
 	})
 
 	t.Run("rejects localPort in production", func(t *testing.T) {
-		os.Setenv("GO_ENV", "production")
-		os.Unsetenv("APP_ENV")
+		_ = os.Setenv("GO_ENV", "production")
+		_ = os.Unsetenv("APP_ENV")
 		err := ValidateLocalPort(8080)
 		if err == nil {
 			t.Error("expected error for localPort in production")
@@ -390,8 +390,8 @@ func TestValidateLocalPort(t *testing.T) {
 	})
 
 	t.Run("allows zero localPort in production", func(t *testing.T) {
-		os.Setenv("GO_ENV", "production")
-		os.Unsetenv("APP_ENV")
+		_ = os.Setenv("GO_ENV", "production")
+		_ = os.Unsetenv("APP_ENV")
 		err := ValidateLocalPort(0)
 		if err != nil {
 			t.Errorf("expected no error for zero localPort, got %v", err)
@@ -590,7 +590,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Attributes containing PII
 		attrs := map[string]any{
@@ -620,7 +620,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Safe attributes without PII
 		attrs := map[string]any{
@@ -645,7 +645,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		attrs := map[string]any{
 			"email": "user@example.com",
@@ -671,7 +671,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Event data containing PII
 		eventData := map[string]any{
@@ -701,7 +701,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Safe event data
 		eventData := map[string]any{
@@ -727,7 +727,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		eventData := map[string]any{
 			"creditCard": "4111111111111111",
@@ -753,7 +753,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		ctx := NewContext("user-123")
 		ctx.WithCustom("ssn", "123-45-6789")
@@ -781,7 +781,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		ctx := NewContext("user-123")
 		ctx.WithCustom("plan", "premium")
@@ -803,7 +803,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		ctx := NewContext("user-123")
 		ctx.WithCustom("password", "secret123")
@@ -828,7 +828,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		ctx := NewContext("user-123")
 		ctx.WithCustom("email", "user@example.com")
@@ -849,7 +849,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		err = client.Track("page_view")
 		if err != nil {
@@ -866,7 +866,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		err = client.SetContext(nil)
 		if err != nil {
@@ -883,7 +883,7 @@ func TestClient_StrictPIIModeEnforcement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		err = client.Identify("user-123")
 		if err != nil {
