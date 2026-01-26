@@ -1,5 +1,5 @@
-// Package internal contains internal implementation details for the FlagKit SDK.
-package internal
+// Package types contains internal type definitions for the FlagKit SDK.
+package types
 
 // Logger defines the interface for logging.
 // This mirrors the public Logger interface to avoid import cycles.
@@ -36,13 +36,27 @@ type ErrorCode string
 
 // Error codes (duplicated from public package to avoid import cycle)
 const (
-	ErrCircuitOpen       ErrorCode = "CIRCUIT_OPEN"
+	// Circuit breaker errors
+	ErrCircuitOpen ErrorCode = "CIRCUIT_OPEN"
+
+	// Network errors
 	ErrNetworkError      ErrorCode = "NETWORK_ERROR"
 	ErrNetworkTimeout    ErrorCode = "NETWORK_TIMEOUT"
 	ErrNetworkRetryLimit ErrorCode = "NETWORK_RETRY_LIMIT"
-	ErrAuthUnauthorized  ErrorCode = "AUTH_UNAUTHORIZED"
-	ErrAuthInvalidKey    ErrorCode = "AUTH_INVALID_KEY"
-	ErrEvalFlagNotFound  ErrorCode = "EVAL_FLAG_NOT_FOUND"
+
+	// Authentication errors
+	ErrAuthUnauthorized ErrorCode = "AUTH_UNAUTHORIZED"
+	ErrAuthInvalidKey   ErrorCode = "AUTH_INVALID_KEY"
+
+	// Evaluation errors
+	ErrEvalFlagNotFound ErrorCode = "EVAL_FLAG_NOT_FOUND"
+
+	// Configuration errors
+	ErrConfigMissingRequired ErrorCode = "CONFIG_MISSING_REQUIRED"
+
+	// Security errors
+	ErrSecurityEncryptionFailed ErrorCode = "SECURITY_ENCRYPTION_FAILED"
+	ErrSecurityDecryptionFailed ErrorCode = "SECURITY_DECRYPTION_FAILED"
 )
 
 // FlagKitError is the internal error type.
@@ -88,6 +102,15 @@ func NewErrorWithCause(code ErrorCode, message string, cause error) *FlagKitErro
 // NetworkError creates a network error.
 func NetworkError(code ErrorCode, message string, cause error) *FlagKitError {
 	return NewErrorWithCause(code, message, cause)
+}
+
+// SecurityError creates a security error.
+func SecurityError(code ErrorCode, message string) *FlagKitError {
+	return &FlagKitError{
+		Code:        code,
+		Message:     message,
+		Recoverable: false,
+	}
 }
 
 // isRecoverableCode determines if an error code represents a recoverable error.
