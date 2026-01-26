@@ -53,7 +53,6 @@ type EventPersistence struct {
 
 	buffer      []PersistedEvent
 	bufferSize  int
-	lockFile    *os.File
 	currentFile string
 	mu          sync.Mutex
 
@@ -188,13 +187,13 @@ func (ep *EventPersistence) flushLocked() error {
 		ep.logWarn("Failed to open lock file", "error", err)
 		return fmt.Errorf("failed to open lock file: %w", err)
 	}
-	defer lockFile.Close()
+	defer ep.closeFile(lockFile)
 
 	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
 		ep.logWarn("Failed to acquire file lock", "error", err)
 		return fmt.Errorf("failed to acquire lock: %w", err)
 	}
-	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+	defer ep.releaseLock(int(lockFile.Fd()))
 
 	// Open or create current log file
 	filePath := filepath.Join(ep.storagePath, ep.currentFile)
@@ -203,7 +202,7 @@ func (ep *EventPersistence) flushLocked() error {
 		ep.logWarn("Failed to open event file", "error", err)
 		return fmt.Errorf("failed to open event file: %w", err)
 	}
-	defer file.Close()
+	defer ep.closeFile(file)
 
 	// Write events in JSON Lines format
 	for _, event := range ep.buffer {
@@ -246,12 +245,12 @@ func (ep *EventPersistence) MarkSent(eventIDs []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open lock file: %w", err)
 	}
-	defer lockFile.Close()
+	defer ep.closeFile(lockFile)
 
 	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
 		return fmt.Errorf("failed to acquire lock: %w", err)
 	}
-	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+	defer ep.releaseLock(int(lockFile.Fd()))
 
 	// Create status update entries
 	filePath := filepath.Join(ep.storagePath, ep.currentFile)
@@ -259,7 +258,7 @@ func (ep *EventPersistence) MarkSent(eventIDs []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open event file: %w", err)
 	}
-	defer file.Close()
+	defer ep.closeFile(file)
 
 	sentAt := time.Now().UnixMilli()
 	for _, id := range eventIDs {
@@ -272,7 +271,9 @@ func (ep *EventPersistence) MarkSent(eventIDs []string) error {
 		if err != nil {
 			continue
 		}
-		file.Write(append(data, '\n'))
+		if _, err := file.Write(append(data, '\n')); err != nil {
+			ep.logWarn("Failed to write event status update", "error", err, "eventId", id)
+		}
 	}
 
 	if err := file.Sync(); err != nil {
@@ -299,19 +300,19 @@ func (ep *EventPersistence) MarkSending(eventIDs []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open lock file: %w", err)
 	}
-	defer lockFile.Close()
+	defer ep.closeFile(lockFile)
 
 	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
 		return fmt.Errorf("failed to acquire lock: %w", err)
 	}
-	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+	defer ep.releaseLock(int(lockFile.Fd()))
 
 	filePath := filepath.Join(ep.storagePath, ep.currentFile)
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open event file: %w", err)
 	}
-	defer file.Close()
+	defer ep.closeFile(file)
 
 	for _, id := range eventIDs {
 		update := map[string]any{
@@ -322,7 +323,9 @@ func (ep *EventPersistence) MarkSending(eventIDs []string) error {
 		if err != nil {
 			continue
 		}
-		file.Write(append(data, '\n'))
+		if _, err := file.Write(append(data, '\n')); err != nil {
+			ep.logWarn("Failed to write event status update", "error", err, "eventId", id)
+		}
 	}
 
 	if err := file.Sync(); err != nil {
@@ -348,19 +351,19 @@ func (ep *EventPersistence) MarkFailed(eventIDs []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open lock file: %w", err)
 	}
-	defer lockFile.Close()
+	defer ep.closeFile(lockFile)
 
 	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
 		return fmt.Errorf("failed to acquire lock: %w", err)
 	}
-	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+	defer ep.releaseLock(int(lockFile.Fd()))
 
 	filePath := filepath.Join(ep.storagePath, ep.currentFile)
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open event file: %w", err)
 	}
-	defer file.Close()
+	defer ep.closeFile(file)
 
 	for _, id := range eventIDs {
 		update := map[string]any{
@@ -371,7 +374,9 @@ func (ep *EventPersistence) MarkFailed(eventIDs []string) error {
 		if err != nil {
 			continue
 		}
-		file.Write(append(data, '\n'))
+		if _, err := file.Write(append(data, '\n')); err != nil {
+			ep.logWarn("Failed to write event status update", "error", err, "eventId", id)
+		}
 	}
 
 	if err := file.Sync(); err != nil {
@@ -393,12 +398,12 @@ func (ep *EventPersistence) Recover() ([]PersistedEvent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open lock file: %w", err)
 	}
-	defer lockFile.Close()
+	defer ep.closeFile(lockFile)
 
 	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
 		return nil, fmt.Errorf("failed to acquire lock: %w", err)
 	}
-	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+	defer ep.releaseLock(int(lockFile.Fd()))
 
 	// Find all event files
 	pattern := filepath.Join(ep.storagePath, "flagkit-events-*.jsonl")
@@ -438,7 +443,7 @@ func (ep *EventPersistence) readEventsFromFile(filePath string, eventMap map[str
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer ep.closeFile(file)
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -488,12 +493,12 @@ func (ep *EventPersistence) Cleanup() error {
 	if err != nil {
 		return fmt.Errorf("failed to open lock file: %w", err)
 	}
-	defer lockFile.Close()
+	defer ep.closeFile(lockFile)
 
 	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX); err != nil {
 		return fmt.Errorf("failed to acquire lock: %w", err)
 	}
-	defer syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
+	defer ep.releaseLock(int(lockFile.Fd()))
 
 	// Find all event files
 	pattern := filepath.Join(ep.storagePath, "flagkit-events-*.jsonl")
@@ -535,14 +540,16 @@ func (ep *EventPersistence) Cleanup() error {
 		if err != nil {
 			return fmt.Errorf("failed to create new event file: %w", err)
 		}
-		defer file.Close()
+		defer ep.closeFile(file)
 
 		for _, event := range pendingEvents {
 			data, err := json.Marshal(event)
 			if err != nil {
 				continue
 			}
-			file.Write(append(data, '\n'))
+			if _, err := file.Write(append(data, '\n')); err != nil {
+				ep.logWarn("Failed to write event during cleanup", "error", err, "eventId", event.ID)
+			}
 		}
 
 		if err := file.Sync(); err != nil {
@@ -634,6 +641,20 @@ func (ep *EventPersistence) logInfo(msg string, keysAndValues ...any) {
 func (ep *EventPersistence) logWarn(msg string, keysAndValues ...any) {
 	if ep.logger != nil {
 		ep.logger.Warn(msg, keysAndValues...)
+	}
+}
+
+// closeFile closes a file and logs any error.
+func (ep *EventPersistence) closeFile(f *os.File) {
+	if err := f.Close(); err != nil {
+		ep.logWarn("Failed to close file", "error", err)
+	}
+}
+
+// releaseLock releases a file lock and logs any error.
+func (ep *EventPersistence) releaseLock(fd int) {
+	if err := syscall.Flock(fd, syscall.LOCK_UN); err != nil {
+		ep.logWarn("Failed to release file lock", "error", err)
 	}
 }
 
