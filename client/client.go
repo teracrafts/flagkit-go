@@ -1,25 +1,115 @@
-package flagkit
+package client
 
 import (
 	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/flagkit/flagkit-go/internal"
+	"github.com/flagkit/flagkit-go/config"
+	"github.com/flagkit/flagkit-go/errors"
+	"github.com/flagkit/flagkit-go/internal/core"
+	"github.com/flagkit/flagkit-go/internal/http"
+	"github.com/flagkit/flagkit-go/internal/persistence"
+	inttypes "github.com/flagkit/flagkit-go/internal/types"
+	"github.com/flagkit/flagkit-go/security"
+	"github.com/flagkit/flagkit-go/types"
 )
 
+// Type aliases for convenience
+type (
+	Options              = config.Options
+	OptionFunc           = config.OptionFunc
+	EvaluationContext    = types.EvaluationContext
+	EvaluationResult     = types.EvaluationResult
+	FlagState            = types.FlagState
+	FlagType             = types.FlagType
+	Logger               = types.Logger
+	EventPersistence     = persistence.EventPersistence
+	EventPersisterAdapter = persistence.EventPersisterAdapter
+)
+
+// Function aliases
+var (
+	DefaultOptions              = config.DefaultOptions
+	ParseInitResponse           = types.ParseInitResponse
+	ParseUpdatesResponse        = types.ParseUpdatesResponse
+	InferFlagType               = types.InferFlagType
+	NewContext                  = types.NewContext
+	NewAnonymousContext         = types.NewAnonymousContext
+	NewDefaultLogger            = types.NewDefaultLogger
+	NewEventPersistence         = persistence.NewEventPersistence
+	NewEventPersisterAdapter    = persistence.NewEventPersisterAdapter
+	ValidateLocalPort           = security.ValidateLocalPort
+	CheckPIIWithStrictMode      = security.CheckPIIWithStrictMode
+	VerifyBootstrapSignature    = security.VerifyBootstrapSignature
+)
+
+// Error function aliases
+var (
+	NewError          = errors.NewError
+	NewErrorWithCause = errors.NewErrorWithCause
+)
+
+// Error code aliases
+const (
+	ErrInitFailed = errors.ErrInitFailed
+)
+
+// Config constant aliases
+const (
+	SDKVersion                      = config.SDKVersion
+	DefaultMaxPersistedEvents       = config.DefaultMaxPersistedEvents
+	DefaultPersistenceFlushInterval = config.DefaultPersistenceFlushInterval
+)
+
+// FlagType constant aliases
+const (
+	FlagTypeBoolean = types.FlagTypeBoolean
+	FlagTypeString  = types.FlagTypeString
+	FlagTypeNumber  = types.FlagTypeNumber
+	FlagTypeJSON    = types.FlagTypeJSON
+)
+
+// EvaluationReason constant aliases
+const (
+	ReasonCached       = types.ReasonCached
+	ReasonFallthrough  = types.ReasonFallthrough
+	ReasonTargeted     = types.ReasonTargeted
+	ReasonDefault      = types.ReasonDefault
+	ReasonDisabled     = types.ReasonDisabled
+	ReasonFlagNotFound = types.ReasonFlagNotFound
+	ReasonError        = types.ReasonError
+	ReasonStaleCache   = types.ReasonStaleCache
+	ReasonBootstrap    = types.ReasonBootstrap
+)
+
+// NullLogger type alias
+type NullLogger = types.NullLogger
+
+// createDefaultResult is a helper function
+func createDefaultResult(key string, defaultValue any, reason types.EvaluationReason) *types.EvaluationResult {
+	return &types.EvaluationResult{
+		FlagKey:   key,
+		Value:     defaultValue,
+		Enabled:   false,
+		Reason:    reason,
+		Version:   0,
+		Timestamp: time.Now(),
+	}
+}
+
 func init() {
-	// Set SDK version in internal http package
-	internal.SDKVersion = SDKVersion
+	// Set SDK version in http package
+	http.SDKVersion = SDKVersion
 }
 
 // Client is the FlagKit SDK client.
 type Client struct {
 	options          *Options
-	cache            *internal.Cache
-	httpClient       *internal.HTTPClient
-	eventQueue       *internal.EventQueue
-	pollingManager   *internal.PollingManager
+	cache            *core.Cache
+	httpClient       *http.HTTPClient
+	eventQueue       *core.EventQueue
+	pollingManager   *core.PollingManager
 	eventPersistence *EventPersistence
 	context          *EvaluationContext
 	sessionID        string
@@ -60,20 +150,20 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 	sessionID := generateSessionID()
 
 	// Create cache
-	cache := internal.NewCache(&internal.CacheConfig{
+	cache := core.NewCache(&core.CacheConfig{
 		TTL:     options.CacheTTL,
 		MaxSize: 1000,
 		Logger:  logger,
 	})
 
 	// Create HTTP client
-	httpClient := internal.NewHTTPClient(&internal.HTTPClientConfig{
+	httpClient := http.NewHTTPClient(&http.HTTPClientConfig{
 		APIKey:                 options.APIKey,
 		SecondaryAPIKey:        options.SecondaryAPIKey,
 		KeyRotationGracePeriod: options.KeyRotationGracePeriod,
 		EnableRequestSigning:   options.EnableRequestSigning,
 		Timeout:                options.Timeout,
-		Retry: &internal.RetryConfig{
+		Retry: &http.RetryConfig{
 			MaxAttempts:       options.Retries,
 			BaseDelay:         time.Second,
 			MaxDelay:          30 * time.Second,
@@ -109,7 +199,7 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 	}
 
 	// Create event queue with persistence support
-	eventQueueOpts := &internal.EventQueueOptions{
+	eventQueueOpts := &core.EventQueueOptions{
 		HTTPClient:     httpClient,
 		SessionID:      sessionID,
 		SDKVersion:     SDKVersion,
@@ -119,7 +209,7 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 	if persisterAdapter != nil {
 		eventQueueOpts.Persister = persisterAdapter
 	}
-	eventQueue := internal.NewEventQueue(eventQueueOpts)
+	eventQueue := core.NewEventQueue(eventQueueOpts)
 
 	// Recover events if persistence is enabled
 	if eventPersistence != nil {
@@ -187,14 +277,14 @@ func (c *Client) Initialize() error {
 	c.eventQueue.SetEnvironmentID(data.EnvironmentID)
 
 	// Convert to internal FlagState and store in cache
-	internalFlags := make([]internal.FlagState, len(data.Flags))
+	internalFlags := make([]inttypes.FlagState, len(data.Flags))
 	for i, f := range data.Flags {
-		internalFlags[i] = internal.FlagState{
+		internalFlags[i] = inttypes.FlagState{
 			Key:          f.Key,
 			Value:        f.Value,
 			Enabled:      f.Enabled,
 			Version:      f.Version,
-			FlagType:     internal.FlagType(f.FlagType),
+			FlagType:     inttypes.FlagType(f.FlagType),
 			LastModified: f.LastModified,
 		}
 	}
@@ -540,12 +630,12 @@ func (c *Client) applyBootstrap() {
 
 	// Apply the flags to cache
 	for key, value := range flags {
-		flag := internal.FlagState{
+		flag := inttypes.FlagState{
 			Key:          key,
 			Value:        value,
 			Enabled:      true,
 			Version:      0,
-			FlagType:     internal.FlagType(InferFlagType(value)),
+			FlagType:     inttypes.FlagType(InferFlagType(value)),
 			LastModified: time.Now().UTC().Format(time.RFC3339),
 		}
 		// Bootstrap values don't expire (use very long TTL)
@@ -563,7 +653,7 @@ func (c *Client) startPolling(interval time.Duration) {
 		interval = c.options.PollingInterval
 	}
 
-	c.pollingManager = internal.NewPollingManager(c.refresh, &internal.PollingConfig{
+	c.pollingManager = core.NewPollingManager(c.refresh, &core.PollingConfig{
 		Interval:          interval,
 		Jitter:            time.Second,
 		BackoffMultiplier: 2.0,
@@ -597,14 +687,14 @@ func (c *Client) refresh() {
 
 	if len(data.Flags) > 0 {
 		// Convert to internal FlagState
-		internalFlags := make([]internal.FlagState, len(data.Flags))
+		internalFlags := make([]inttypes.FlagState, len(data.Flags))
 		for i, f := range data.Flags {
-			internalFlags[i] = internal.FlagState{
+			internalFlags[i] = inttypes.FlagState{
 				Key:          f.Key,
 				Value:        f.Value,
 				Enabled:      f.Enabled,
 				Version:      f.Version,
-				FlagType:     internal.FlagType(f.FlagType),
+				FlagType:     inttypes.FlagType(f.FlagType),
 				LastModified: f.LastModified,
 			}
 		}
