@@ -1,4 +1,4 @@
-package flagkit
+package security
 
 import (
 	"crypto/hmac"
@@ -11,6 +11,29 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/flagkit/flagkit-go/config"
+	"github.com/flagkit/flagkit-go/errors"
+	"github.com/flagkit/flagkit-go/types"
+)
+
+// Type aliases for convenience
+type Logger = types.Logger
+type BootstrapConfig = config.BootstrapConfig
+type BootstrapVerificationConfig = config.BootstrapVerificationConfig
+
+// Error function aliases
+var (
+	SecurityError     = errors.SecurityError
+	NewError          = errors.NewError
+	NewErrorWithCause = errors.NewErrorWithCause
+)
+
+// Error code aliases
+const (
+	ErrSecurityPIIDetected           = errors.ErrSecurityPIIDetected
+	ErrSecurityLocalPortInProduction = errors.ErrSecurityLocalPortInProduction
+	ErrSecuritySignatureInvalid      = errors.ErrSecuritySignatureInvalid
 )
 
 // PII field patterns (case-insensitive matching)
