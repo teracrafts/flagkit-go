@@ -17,7 +17,7 @@ func TestEvaluationJitter_DisabledByDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Verify jitter is disabled by default
 	if client.options.EvaluationJitter.Enabled {
@@ -51,7 +51,7 @@ func TestEvaluationJitter_AppliedWhenEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Verify jitter is enabled
 	if !client.options.EvaluationJitter.Enabled {
@@ -91,7 +91,7 @@ func TestEvaluationJitter_TimingWithinRange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Run multiple evaluations and check timing is within expected range
 	// Allow some tolerance for scheduling jitter
@@ -159,7 +159,7 @@ func TestWithEvaluationJitter_OptionWorks(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create client: %v", err)
 			}
-			defer client.Close()
+			defer func() { _ = client.Close() }()
 
 			if client.options.EvaluationJitter.Enabled != tt.enabled {
 				t.Errorf("Expected Enabled to be %v, got %v", tt.enabled, client.options.EvaluationJitter.Enabled)
@@ -209,7 +209,7 @@ func TestEvaluationJitter_AllEvaluationMethods(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Test all evaluation methods apply jitter
 	testCases := []struct {
