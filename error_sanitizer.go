@@ -35,7 +35,7 @@ var sanitizationPatterns = []sanitizationPattern{
 	// FlagKit CLI API keys
 	{regexp.MustCompile(`cli_[a-zA-Z0-9_-]{8,}`), "cli_[REDACTED]"},
 	// Email addresses
-	{regexp.MustCompile(`[\w.-]+@[\w.-]+\.\w+`), "[EMAIL]"},
+	{regexp.MustCompile(`[\w.+-]+@[\w.-]+\.\w+`), "[EMAIL]"},
 	// Database connection strings (postgres, mysql, mongodb, redis)
 	{regexp.MustCompile(`(?i)(?:postgres|mysql|mongodb|redis)://[^\s]+`), "[CONNECTION_STRING]"},
 }
