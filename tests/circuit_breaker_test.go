@@ -1,9 +1,10 @@
-package flagkit
+package tests
 
 import (
 	"testing"
 	"time"
 
+	. "github.com/flagkit/flagkit-go"
 	"github.com/stretchr/testify/assert"
 )
 
