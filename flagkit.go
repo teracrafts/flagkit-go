@@ -121,7 +121,7 @@ func HasFlag(key string) bool {
 
 // Identify identifies a user using the singleton client.
 func Identify(userID string, attributes ...map[string]any) {
-	mustGetClient().Identify(userID, attributes...)
+	_ = mustGetClient().Identify(userID, attributes...)
 }
 
 // Reset resets to anonymous user using the singleton client.
@@ -131,7 +131,7 @@ func Reset() {
 
 // Track tracks a custom event using the singleton client.
 func Track(eventType string, data ...map[string]any) {
-	mustGetClient().Track(eventType, data...)
+	_ = mustGetClient().Track(eventType, data...)
 }
 
 // Flush flushes pending events using the singleton client.
