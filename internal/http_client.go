@@ -321,7 +321,7 @@ func (c *HTTPClient) doRequest(ctx context.Context, method, path string, body an
 	if err != nil {
 		return nil, NewErrorWithCause(ErrNetworkError, "request failed", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
