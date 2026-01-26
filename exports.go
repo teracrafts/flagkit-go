@@ -6,15 +6,18 @@ package flagkit
 import (
 	"time"
 
-	"github.com/flagkit/flagkit-go/internal"
+	"github.com/flagkit/flagkit-go/internal/core"
+	"github.com/flagkit/flagkit-go/internal/http"
+	"github.com/flagkit/flagkit-go/internal/persistence"
+	inttypes "github.com/flagkit/flagkit-go/internal/types"
 )
 
-// Cache wraps internal.Cache for public access
+// Cache wraps core.Cache for public access
 type Cache struct {
-	*internal.Cache
+	*core.Cache
 }
 
-// CacheConfig is an alias for internal.CacheConfig
+// CacheConfig is an alias for core.CacheConfig
 type CacheConfig struct {
 	TTL     time.Duration
 	MaxSize int
@@ -24,7 +27,7 @@ type CacheConfig struct {
 // NewCache creates a new cache.
 func NewCache(config *CacheConfig) *Cache {
 	return &Cache{
-		Cache: internal.NewCache(&internal.CacheConfig{
+		Cache: core.NewCache(&core.CacheConfig{
 			TTL:     config.TTL,
 			MaxSize: config.MaxSize,
 			Logger:  config.Logger,
@@ -34,20 +37,20 @@ func NewCache(config *CacheConfig) *Cache {
 
 // Get retrieves a flag from the cache.
 func (c *Cache) Get(key string) *FlagState {
-	internal := c.Cache.Get(key)
-	if internal == nil {
+	intFlag := c.Cache.Get(key)
+	if intFlag == nil {
 		return nil
 	}
-	return internalToPublicFlagState(internal)
+	return internalToPublicFlagState(intFlag)
 }
 
 // GetStale retrieves a flag from the cache even if expired.
 func (c *Cache) GetStale(key string) *FlagState {
-	internal := c.Cache.GetStale(key)
-	if internal == nil {
+	intFlag := c.Cache.GetStale(key)
+	if intFlag == nil {
 		return nil
 	}
-	return internalToPublicFlagState(internal)
+	return internalToPublicFlagState(intFlag)
 }
 
 // Set stores a flag in the cache.
@@ -57,7 +60,7 @@ func (c *Cache) Set(key string, flag FlagState, ttl ...time.Duration) {
 
 // SetMany stores multiple flags in the cache.
 func (c *Cache) SetMany(flags []FlagState, ttl ...time.Duration) {
-	internalFlags := make([]internal.FlagState, len(flags))
+	internalFlags := make([]inttypes.FlagState, len(flags))
 	for i, f := range flags {
 		internalFlags[i] = publicToInternalFlagState(f)
 	}
@@ -66,7 +69,7 @@ func (c *Cache) SetMany(flags []FlagState, ttl ...time.Duration) {
 
 // DefaultCacheConfig returns the default cache configuration.
 func DefaultCacheConfig() *CacheConfig {
-	cfg := internal.DefaultCacheConfig()
+	cfg := core.DefaultCacheConfig()
 	return &CacheConfig{
 		TTL:     cfg.TTL,
 		MaxSize: cfg.MaxSize,
@@ -74,54 +77,54 @@ func DefaultCacheConfig() *CacheConfig {
 }
 
 // CircuitBreaker type aliases for testing
-type CircuitBreaker = internal.CircuitBreaker
-type CircuitBreakerConfig = internal.CircuitBreakerConfig
-type CircuitState = internal.CircuitState
+type CircuitBreaker = http.CircuitBreaker
+type CircuitBreakerConfig = http.CircuitBreakerConfig
+type CircuitState = http.CircuitState
 
 const (
-	CircuitClosed   = internal.CircuitClosed
-	CircuitOpen     = internal.CircuitOpen
-	CircuitHalfOpen = internal.CircuitHalfOpen
+	CircuitClosed   = http.CircuitClosed
+	CircuitOpen     = http.CircuitOpen
+	CircuitHalfOpen = http.CircuitHalfOpen
 )
 
 // NewCircuitBreaker creates a new circuit breaker.
 func NewCircuitBreaker(config *CircuitBreakerConfig) *CircuitBreaker {
-	return internal.NewCircuitBreaker(config)
+	return http.NewCircuitBreaker(config)
 }
 
 // DefaultCircuitBreakerConfig returns the default circuit breaker configuration.
 func DefaultCircuitBreakerConfig() *CircuitBreakerConfig {
-	return internal.DefaultCircuitBreakerConfig()
+	return http.DefaultCircuitBreakerConfig()
 }
 
 // Retry type aliases for testing
-type RetryConfig = internal.RetryConfig
+type RetryConfig = http.RetryConfig
 
 // DefaultRetryConfig returns the default retry configuration.
 func DefaultRetryConfig() *RetryConfig {
-	return internal.DefaultRetryConfig()
+	return http.DefaultRetryConfig()
 }
 
-// calculateBackoff calculates the backoff delay for a retry attempt.
-func calculateBackoff(attempt int, config *RetryConfig) time.Duration {
-	return internal.CalculateBackoff(attempt, config)
+// CalculateBackoff calculates the backoff delay for a retry attempt.
+func CalculateBackoff(attempt int, config *RetryConfig) time.Duration {
+	return http.CalculateBackoff(attempt, config)
 }
 
 // WithRetry executes a function with retry logic.
 func WithRetry[T any](fn func() (T, error), config *RetryConfig) (T, error) {
-	return internal.WithRetry(fn, config)
+	return http.WithRetry(fn, config)
 }
 
 // Event type aliases for testing
-type Event = internal.Event
+type Event = core.Event
 
-// EventQueue wraps internal.EventQueue for public access
+// EventQueue wraps core.EventQueue for public access
 type EventQueue struct {
-	*internal.EventQueue
+	*core.EventQueue
 }
 
-// EventQueueConfig is an alias for internal.EventQueueConfig
-type EventQueueConfig = internal.EventQueueConfig
+// EventQueueConfig is an alias for core.EventQueueConfig
+type EventQueueConfig = core.EventQueueConfig
 
 // EventQueueOptions contains options for creating an event queue
 type EventQueueOptions struct {
@@ -135,7 +138,7 @@ type EventQueueOptions struct {
 // NewEventQueue creates a new event queue.
 func NewEventQueue(opts *EventQueueOptions) *EventQueue {
 	return &EventQueue{
-		EventQueue: internal.NewEventQueue(&internal.EventQueueOptions{
+		EventQueue: core.NewEventQueue(&core.EventQueueOptions{
 			SessionID:     opts.SessionID,
 			EnvironmentID: opts.EnvironmentID,
 			SDKVersion:    opts.SDKVersion,
@@ -152,36 +155,71 @@ func (eq *EventQueue) TrackWithContext(eventType string, data map[string]any, ct
 
 // DefaultEventQueueConfig returns the default event queue configuration.
 func DefaultEventQueueConfig() *EventQueueConfig {
-	return internal.DefaultEventQueueConfig()
+	return core.DefaultEventQueueConfig()
 }
 
 // Polling type aliases for testing
-type PollingManager = internal.PollingManager
-type PollingConfig = internal.PollingConfig
+type PollingManager = core.PollingManager
+type PollingConfig = core.PollingConfig
 
 // NewPollingManager creates a new polling manager.
 func NewPollingManager(onPoll func(), config *PollingConfig, logger Logger) *PollingManager {
-	return internal.NewPollingManager(onPoll, config, logger)
+	return core.NewPollingManager(onPoll, config, logger)
 }
 
 // DefaultPollingConfig returns the default polling configuration.
 func DefaultPollingConfig() *PollingConfig {
-	return internal.DefaultPollingConfig()
+	return core.DefaultPollingConfig()
 }
 
 // HTTP client type aliases for advanced usage
-type HTTPClient = internal.HTTPClient
-type HTTPClientConfig = internal.HTTPClientConfig
-type HTTPResponse = internal.HTTPResponse
+type HTTPClient = http.HTTPClient
+type HTTPClientConfig = http.HTTPClientConfig
+type HTTPResponse = http.HTTPResponse
 
 // NewHTTPClient creates a new HTTP client.
 func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
-	return internal.NewHTTPClient(config)
+	return http.NewHTTPClient(config)
+}
+
+// EventPersistence type aliases for testing
+type EventPersistence = persistence.EventPersistence
+type EventPersisterAdapter = persistence.EventPersisterAdapter
+type PersistedEvent = persistence.PersistedEvent
+type EventStatus = persistence.EventStatus
+type EventPersistenceConfig = persistence.EventPersistenceConfig
+
+// Event status constants
+const (
+	EventStatusPending = persistence.EventStatusPending
+	EventStatusSending = persistence.EventStatusSending
+	EventStatusSent    = persistence.EventStatusSent
+	EventStatusFailed  = persistence.EventStatusFailed
+)
+
+// NewEventPersistence creates a new event persistence instance.
+func NewEventPersistence(storagePath string, maxEvents int, flushInterval time.Duration, logger Logger) (*EventPersistence, error) {
+	return persistence.NewEventPersistence(storagePath, maxEvents, flushInterval, logger)
+}
+
+// NewEventPersisterAdapter creates an adapter that implements the EventPersister interface.
+func NewEventPersisterAdapter(ep *EventPersistence) *EventPersisterAdapter {
+	return persistence.NewEventPersisterAdapter(ep)
+}
+
+// DefaultEventPersistenceConfig returns the default event persistence configuration.
+func DefaultEventPersistenceConfig() *EventPersistenceConfig {
+	return persistence.DefaultEventPersistenceConfig()
+}
+
+// GenerateEventID generates a unique event ID.
+func GenerateEventID() string {
+	return persistence.GenerateEventID()
 }
 
 // Helper functions for type conversion
 
-func internalToPublicFlagState(f *internal.FlagState) *FlagState {
+func internalToPublicFlagState(f *inttypes.FlagState) *FlagState {
 	return &FlagState{
 		Key:          f.Key,
 		Value:        f.Value,
@@ -192,22 +230,22 @@ func internalToPublicFlagState(f *internal.FlagState) *FlagState {
 	}
 }
 
-func publicToInternalFlagState(f FlagState) internal.FlagState {
-	return internal.FlagState{
+func publicToInternalFlagState(f FlagState) inttypes.FlagState {
+	return inttypes.FlagState{
 		Key:          f.Key,
 		Value:        f.Value,
 		Enabled:      f.Enabled,
 		Version:      f.Version,
-		FlagType:     internal.FlagType(f.FlagType),
+		FlagType:     inttypes.FlagType(f.FlagType),
 		LastModified: f.LastModified,
 	}
 }
 
-func publicToInternalContext(ctx *EvaluationContext) *internal.EvaluationContext {
+func publicToInternalContext(ctx *EvaluationContext) *inttypes.EvaluationContext {
 	if ctx == nil {
 		return nil
 	}
-	return &internal.EvaluationContext{
+	return &inttypes.EvaluationContext{
 		UserID:            ctx.UserID,
 		Email:             ctx.Email,
 		Name:              ctx.Name,
