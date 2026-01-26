@@ -1,4 +1,4 @@
-package flagkit
+package errors
 
 import (
 	"regexp"
