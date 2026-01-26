@@ -433,7 +433,9 @@ func (c *Client) Close() error {
 	}
 
 	// Close HTTP client
-	c.httpClient.Close()
+	if err := c.httpClient.Close(); err != nil {
+		c.logger.Warn("Failed to close HTTP client", "error", err.Error())
+	}
 
 	c.logger.Info("SDK closed")
 	return nil
