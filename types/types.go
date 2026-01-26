@@ -133,18 +133,6 @@ type EventsBatchResponse struct {
 	Errors   int    `json:"errors"`
 }
 
-// createDefaultResult creates a default evaluation result.
-func createDefaultResult(key string, defaultValue any, reason EvaluationReason) *EvaluationResult {
-	return &EvaluationResult{
-		FlagKey:   key,
-		Value:     defaultValue,
-		Enabled:   false,
-		Reason:    reason,
-		Version:   0,
-		Timestamp: time.Now(),
-	}
-}
-
 // ParseInitResponse parses JSON data into an InitResponse.
 func ParseInitResponse(data []byte) (*InitResponse, error) {
 	var resp InitResponse
