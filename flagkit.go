@@ -22,6 +22,171 @@ package flagkit
 
 import (
 	"sync"
+
+	"github.com/flagkit/flagkit-go/client"
+	"github.com/flagkit/flagkit-go/config"
+	"github.com/flagkit/flagkit-go/errors"
+	"github.com/flagkit/flagkit-go/security"
+	"github.com/flagkit/flagkit-go/types"
+)
+
+// Re-export commonly used types for convenience
+type (
+	// Client is the FlagKit SDK client.
+	Client = client.Client
+
+	// OptionFunc is a function that modifies Options.
+	OptionFunc = config.OptionFunc
+
+	// Options configures the FlagKit client.
+	Options = config.Options
+
+	// BootstrapConfig represents bootstrap flag values with optional HMAC signature verification.
+	BootstrapConfig = config.BootstrapConfig
+
+	// BootstrapVerificationConfig configures bootstrap signature verification behavior.
+	BootstrapVerificationConfig = config.BootstrapVerificationConfig
+
+	// EvaluationContext contains user and environment information for flag evaluation.
+	EvaluationContext = types.EvaluationContext
+
+	// EvaluationResult represents the result of evaluating a flag.
+	EvaluationResult = types.EvaluationResult
+
+	// FlagState represents the state of a feature flag.
+	FlagState = types.FlagState
+
+	// FlagType represents the type of a flag value.
+	FlagType = types.FlagType
+
+	// Logger defines the interface for logging.
+	Logger = types.Logger
+
+	// NullLogger is a logger that discards all output.
+	NullLogger = types.NullLogger
+
+	// FlagKitError represents an SDK error.
+	FlagKitError = errors.FlagKitError
+
+	// SecurityConfig holds security configuration options.
+	SecurityConfig = security.SecurityConfig
+
+	// PIIDetectionResult contains the result of PII detection.
+	PIIDetectionResult = security.PIIDetectionResult
+
+	// SignedPayload represents a payload with HMAC-SHA256 signature.
+	SignedPayload = security.SignedPayload
+
+	// RequestSignature contains signature information for request headers.
+	RequestSignature = security.RequestSignature
+
+	// BootstrapVerificationResult contains the result of bootstrap verification.
+	BootstrapVerificationResult = security.BootstrapVerificationResult
+)
+
+// Re-export commonly used functions
+var (
+	// NewClient creates a new FlagKit client.
+	NewClient = client.NewClient
+
+	// DefaultOptions returns options with default values.
+	DefaultOptions = config.DefaultOptions
+
+	// NewContext creates a new EvaluationContext with the given user ID.
+	NewContext = types.NewContext
+
+	// NewAnonymousContext creates a new anonymous EvaluationContext.
+	NewAnonymousContext = types.NewAnonymousContext
+
+	// NewDefaultLogger creates a new default logger.
+	NewDefaultLogger = types.NewDefaultLogger
+)
+
+// Re-export error types and functions
+var (
+	NewError          = errors.NewError
+	NewErrorWithCause = errors.NewErrorWithCause
+)
+
+// Re-export error codes
+const (
+	ErrInitFailed                    = errors.ErrInitFailed
+	ErrInitTimeout                   = errors.ErrInitTimeout
+	ErrInitAlreadyInitialized        = errors.ErrInitAlreadyInitialized
+	ErrInitNotInitialized            = errors.ErrInitNotInitialized
+	ErrSecurityPIIDetected           = errors.ErrSecurityPIIDetected
+	ErrSecurityLocalPortInProduction = errors.ErrSecurityLocalPortInProduction
+	ErrSecuritySignatureInvalid      = errors.ErrSecuritySignatureInvalid
+	ErrNetworkError                  = errors.ErrNetworkError
+	ErrAuthInvalidKey                = errors.ErrAuthInvalidKey
+)
+
+// Re-export flag types
+const (
+	FlagTypeBoolean = types.FlagTypeBoolean
+	FlagTypeString  = types.FlagTypeString
+	FlagTypeNumber  = types.FlagTypeNumber
+	FlagTypeJSON    = types.FlagTypeJSON
+)
+
+// Re-export evaluation jitter defaults
+const (
+	DefaultEvaluationJitterMinMs = config.DefaultEvaluationJitterMinMs
+	DefaultEvaluationJitterMaxMs = config.DefaultEvaluationJitterMaxMs
+)
+
+// Re-export option functions
+var (
+	WithBaseURL               = config.WithBaseURL
+	WithPollingInterval       = config.WithPollingInterval
+	WithPollingDisabled       = config.WithPollingDisabled
+	WithCacheTTL              = config.WithCacheTTL
+	WithCacheDisabled         = config.WithCacheDisabled
+	WithOffline               = config.WithOffline
+	WithTimeout               = config.WithTimeout
+	WithRetries               = config.WithRetries
+	WithBootstrap             = config.WithBootstrap
+	WithDebug                 = config.WithDebug
+	WithLogger                = config.WithLogger
+	WithOnReady               = config.WithOnReady
+	WithOnError               = config.WithOnError
+	WithOnUpdate              = config.WithOnUpdate
+	WithLocalPort             = config.WithLocalPort
+	WithSecondaryAPIKey       = config.WithSecondaryAPIKey
+	WithStrictPIIMode         = config.WithStrictPIIMode
+	WithRequestSigning        = config.WithRequestSigning
+	WithCacheEncryption          = config.WithCacheEncryption
+	WithPersistEvents            = config.WithPersistEvents
+	WithEventStoragePath         = config.WithEventStoragePath
+	WithMaxPersistedEvents       = config.WithMaxPersistedEvents
+	WithPersistenceFlushInterval = config.WithPersistenceFlushInterval
+	WithEvaluationJitter         = config.WithEvaluationJitter
+	WithBootstrapVerification = config.WithBootstrapVerification
+	WithSignedBootstrap       = config.WithSignedBootstrap
+	WithErrorSanitization     = config.WithErrorSanitization
+)
+
+// Re-export security functions
+var (
+	CanonicalizeObject             = security.CanonicalizeObject
+	CreateBootstrapSignature       = security.CreateBootstrapSignature
+	VerifyBootstrapSignature       = security.VerifyBootstrapSignature
+	IsPotentialPIIField            = security.IsPotentialPIIField
+	DetectPotentialPII             = security.DetectPotentialPII
+	WarnIfPotentialPII             = security.WarnIfPotentialPII
+	IsServerKey                    = security.IsServerKey
+	IsClientKey                    = security.IsClientKey
+	DefaultSecurityConfig          = security.DefaultSecurityConfig
+	CheckForPotentialPII           = security.CheckForPotentialPII
+	CheckPIIWithStrictMode         = security.CheckPIIWithStrictMode
+	IsProductionEnvironment        = security.IsProductionEnvironment
+	ValidateLocalPort              = security.ValidateLocalPort
+	GetKeyID                       = security.GetKeyID
+	GenerateHMACSHA256             = security.GenerateHMACSHA256
+	CreateRequestSignature         = security.CreateRequestSignature
+	VerifyRequestSignature         = security.VerifyRequestSignature
+	SignPayload                    = security.SignPayload
+	VerifySignedPayload            = security.VerifySignedPayload
 )
 
 var (
