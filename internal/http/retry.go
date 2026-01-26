@@ -1,10 +1,15 @@
-package internal
+package http
 
 import (
 	"math"
 	"math/rand"
 	"time"
+
+	"github.com/flagkit/flagkit-go/internal/types"
 )
+
+// retryFlagKitError is an alias for types.FlagKitError (used for type assertions).
+type retryFlagKitError = types.FlagKitError
 
 // RetryConfig contains retry configuration.
 type RetryConfig struct {
@@ -83,7 +88,7 @@ type RecoverableError interface {
 // isRetryableError checks if an error should be retried.
 func isRetryableError(err error) bool {
 	// Check internal FlagKitError
-	if fkErr, ok := err.(*FlagKitError); ok {
+	if fkErr, ok := err.(*retryFlagKitError); ok {
 		return fkErr.Recoverable
 	}
 	// Check for RecoverableError interface (for public package errors)
