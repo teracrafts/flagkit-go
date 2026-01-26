@@ -1,10 +1,11 @@
-package flagkit
+package tests
 
 import (
 	"sync/atomic"
 	"testing"
 	"time"
 
+	. "github.com/flagkit/flagkit-go"
 	"github.com/stretchr/testify/assert"
 )
 
