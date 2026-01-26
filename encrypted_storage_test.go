@@ -236,7 +236,7 @@ func TestEncryptedCacheStorage(t *testing.T) {
 	t.Run("delete", func(t *testing.T) {
 		cache, _ := NewEncryptedCacheStorage("sdk_test_api_key_12345", nil)
 
-		cache.Set("key1", "value1")
+		_ = cache.Set("key1", "value1")
 		cache.Delete("key1")
 
 		value, _ := cache.Get("key1")
@@ -248,8 +248,8 @@ func TestEncryptedCacheStorage(t *testing.T) {
 	t.Run("clear", func(t *testing.T) {
 		cache, _ := NewEncryptedCacheStorage("sdk_test_api_key_12345", nil)
 
-		cache.Set("key1", "value1")
-		cache.Set("key2", "value2")
+		_ = cache.Set("key1", "value1")
+		_ = cache.Set("key2", "value2")
 		cache.Clear()
 
 		if cache.Has("key1") || cache.Has("key2") {
@@ -264,7 +264,7 @@ func TestEncryptedCacheStorage(t *testing.T) {
 			t.Error("expected Has to return false for non-existent key")
 		}
 
-		cache.Set("key1", "value1")
+		_ = cache.Set("key1", "value1")
 
 		if !cache.Has("key1") {
 			t.Error("expected Has to return true after set")
