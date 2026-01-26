@@ -1,4 +1,4 @@
-package flagkit
+package persistence
 
 import (
 	"bufio"
@@ -13,8 +13,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/flagkit/flagkit-go/internal"
+	"github.com/flagkit/flagkit-go/internal/core"
+	"github.com/flagkit/flagkit-go/internal/types"
 )
+
+// Logger is an alias for the types.Logger interface.
+type Logger = types.Logger
 
 // eventCounter is used to generate unique event IDs
 var eventCounter uint64
@@ -147,7 +151,7 @@ func (ep *EventPersistence) Persist(event PersistedEvent) error {
 
 	// Set defaults if not provided
 	if event.ID == "" {
-		event.ID = generateEventID()
+		event.ID = GenerateEventID()
 	}
 	if event.Timestamp == 0 {
 		event.Timestamp = time.Now().UnixMilli()
@@ -609,8 +613,8 @@ func (ep *EventPersistence) generateFileName() string {
 	return fmt.Sprintf("flagkit-events-%d-%s.jsonl", timestamp, random)
 }
 
-// generateEventID generates a unique event ID.
-func generateEventID() string {
+// GenerateEventID generates a unique event ID.
+func GenerateEventID() string {
 	count := atomic.AddUint64(&eventCounter, 1)
 	return fmt.Sprintf("evt_%d_%s", count, generateRandomString(8))
 }
@@ -669,7 +673,7 @@ func NewEventPersisterAdapter(ep *EventPersistence) *EventPersisterAdapter {
 }
 
 // Persist persists an event using the internal PersistedEvent type.
-func (a *EventPersisterAdapter) Persist(event internal.PersistedEvent) error {
+func (a *EventPersisterAdapter) Persist(event core.PersistedEvent) error {
 	return a.ep.Persist(PersistedEvent{
 		ID:        event.ID,
 		Type:      event.Type,
@@ -697,15 +701,15 @@ func (a *EventPersisterAdapter) MarkFailed(eventIDs []string) error {
 }
 
 // Recover recovers pending events.
-func (a *EventPersisterAdapter) Recover() ([]internal.PersistedEvent, error) {
+func (a *EventPersisterAdapter) Recover() ([]core.PersistedEvent, error) {
 	events, err := a.ep.Recover()
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]internal.PersistedEvent, len(events))
+	result := make([]core.PersistedEvent, len(events))
 	for i, e := range events {
-		result[i] = internal.PersistedEvent{
+		result[i] = core.PersistedEvent{
 			ID:        e.ID,
 			Type:      e.Type,
 			Data:      e.Data,
