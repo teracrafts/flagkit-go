@@ -1,9 +1,12 @@
-package internal
+package core
 
 import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/flagkit/flagkit-go/internal/http"
+	"github.com/flagkit/flagkit-go/internal/types"
 )
 
 // Event represents an analytics event.
@@ -59,11 +62,11 @@ func DefaultEventQueueConfig() *EventQueueConfig {
 type EventQueue struct {
 	config        *EventQueueConfig
 	events        []Event
-	httpClient    *HTTPClient
+	httpClient    *http.HTTPClient
 	sessionID     string
 	environmentID string
 	sdkVersion    string
-	logger        Logger
+	logger        types.Logger
 	running       bool
 	stopCh        chan struct{}
 	flushCh       chan struct{}
@@ -76,11 +79,11 @@ type EventQueue struct {
 
 // EventQueueOptions contains options for creating an event queue.
 type EventQueueOptions struct {
-	HTTPClient     *HTTPClient
+	HTTPClient     *http.HTTPClient
 	SessionID      string
 	EnvironmentID  string
 	SDKVersion     string
-	Logger         Logger
+	Logger         types.Logger
 	Config         *EventQueueConfig
 	Persister      EventPersister
 	PersistEnabled bool
@@ -209,7 +212,7 @@ func (eq *EventQueue) generateEventID() string {
 }
 
 // TrackWithContext adds an event with context to the queue.
-func (eq *EventQueue) TrackWithContext(eventType string, data map[string]any, ctx *EvaluationContext) {
+func (eq *EventQueue) TrackWithContext(eventType string, data map[string]any, ctx *types.EvaluationContext) {
 	eq.mu.Lock()
 	defer eq.mu.Unlock()
 
