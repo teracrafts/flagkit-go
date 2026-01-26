@@ -1,4 +1,4 @@
-package flagkit
+package types
 
 // EvaluationContext contains user and environment information for flag evaluation.
 type EvaluationContext struct {
