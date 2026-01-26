@@ -1,10 +1,15 @@
-package internal
+package core
 
 import (
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/flagkit/flagkit-go/internal/types"
 )
+
+// Logger is an alias for the types.Logger interface.
+type Logger = types.Logger
 
 // PollingConfig contains polling configuration.
 type PollingConfig struct {
