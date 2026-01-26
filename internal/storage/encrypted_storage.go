@@ -1,17 +1,21 @@
-package flagkit
+package storage
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"io"
 	"sync"
 
+	"github.com/flagkit/flagkit-go/internal/types"
 	"golang.org/x/crypto/pbkdf2"
-	"crypto/sha256"
 )
+
+// Logger is an alias for the types.Logger interface.
+type Logger = types.Logger
 
 const (
 	// EncryptionVersion is the current encryption format version.
@@ -58,7 +62,7 @@ type EncryptedStorageConfig struct {
 // NewEncryptedStorage creates a new encrypted storage instance.
 func NewEncryptedStorage(config *EncryptedStorageConfig) (*EncryptedStorage, error) {
 	if config.APIKey == "" {
-		return nil, NewError(ErrConfigMissingRequired, "API key is required for encrypted storage")
+		return nil, types.NewError(types.ErrConfigMissingRequired, "API key is required for encrypted storage")
 	}
 
 	storage := &EncryptedStorage{
@@ -101,25 +105,25 @@ func (s *EncryptedStorage) Encrypt(plaintext string) (string, error) {
 	s.mu.RUnlock()
 
 	if key == nil {
-		return "", SecurityError(ErrSecurityEncryptionFailed, "encryption key not derived")
+		return "", types.SecurityError(types.ErrSecurityEncryptionFailed, "encryption key not derived")
 	}
 
 	// Create AES cipher
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", SecurityError(ErrSecurityEncryptionFailed, "failed to create cipher: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityEncryptionFailed, "failed to create cipher: "+err.Error())
 	}
 
 	// Create GCM mode
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", SecurityError(ErrSecurityEncryptionFailed, "failed to create GCM: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityEncryptionFailed, "failed to create GCM: "+err.Error())
 	}
 
 	// Generate random IV
 	iv := make([]byte, ivLength)
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", SecurityError(ErrSecurityEncryptionFailed, "failed to generate IV: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityEncryptionFailed, "failed to generate IV: "+err.Error())
 	}
 
 	// Encrypt data (GCM includes authentication tag automatically)
@@ -135,7 +139,7 @@ func (s *EncryptedStorage) Encrypt(plaintext string) (string, error) {
 	// Serialize to JSON
 	result, err := json.Marshal(encrypted)
 	if err != nil {
-		return "", SecurityError(ErrSecurityEncryptionFailed, "failed to marshal encrypted data: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityEncryptionFailed, "failed to marshal encrypted data: "+err.Error())
 	}
 
 	return string(result), nil
@@ -148,48 +152,48 @@ func (s *EncryptedStorage) Decrypt(ciphertext string) (string, error) {
 	s.mu.RUnlock()
 
 	if key == nil {
-		return "", SecurityError(ErrSecurityDecryptionFailed, "encryption key not derived")
+		return "", types.SecurityError(types.ErrSecurityDecryptionFailed, "encryption key not derived")
 	}
 
 	// Parse encrypted data structure
 	var encrypted EncryptedData
 	if err := json.Unmarshal([]byte(ciphertext), &encrypted); err != nil {
-		return "", SecurityError(ErrSecurityDecryptionFailed, "failed to parse encrypted data: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityDecryptionFailed, "failed to parse encrypted data: "+err.Error())
 	}
 
 	// Check version
 	if encrypted.Version != EncryptionVersion {
-		return "", SecurityError(ErrSecurityDecryptionFailed, "unsupported encryption version")
+		return "", types.SecurityError(types.ErrSecurityDecryptionFailed, "unsupported encryption version")
 	}
 
 	// Decode IV
 	iv, err := base64.StdEncoding.DecodeString(encrypted.IV)
 	if err != nil {
-		return "", SecurityError(ErrSecurityDecryptionFailed, "failed to decode IV: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityDecryptionFailed, "failed to decode IV: "+err.Error())
 	}
 
 	// Decode ciphertext
 	data, err := base64.StdEncoding.DecodeString(encrypted.Data)
 	if err != nil {
-		return "", SecurityError(ErrSecurityDecryptionFailed, "failed to decode ciphertext: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityDecryptionFailed, "failed to decode ciphertext: "+err.Error())
 	}
 
 	// Create AES cipher
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", SecurityError(ErrSecurityDecryptionFailed, "failed to create cipher: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityDecryptionFailed, "failed to create cipher: "+err.Error())
 	}
 
 	// Create GCM mode
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", SecurityError(ErrSecurityDecryptionFailed, "failed to create GCM: "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityDecryptionFailed, "failed to create GCM: "+err.Error())
 	}
 
 	// Decrypt data
 	plaintext, err := gcm.Open(nil, iv, data, nil)
 	if err != nil {
-		return "", SecurityError(ErrSecurityDecryptionFailed, "decryption failed (invalid key or corrupted data): "+err.Error())
+		return "", types.SecurityError(types.ErrSecurityDecryptionFailed, "decryption failed (invalid key or corrupted data): "+err.Error())
 	}
 
 	return string(plaintext), nil
