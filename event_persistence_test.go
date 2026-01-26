@@ -18,7 +18,7 @@ func TestNewEventPersistence(t *testing.T) {
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
 	require.NotNil(t, ep)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	assert.Equal(t, tempDir, ep.GetStoragePath())
 	assert.Equal(t, 0, ep.GetBufferSize())
@@ -28,7 +28,7 @@ func TestEventPersistence_DefaultStoragePath(t *testing.T) {
 	ep, err := NewEventPersistence("", 10000, time.Second, nil)
 	require.NoError(t, err)
 	require.NotNil(t, ep)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	assert.Equal(t, os.TempDir(), ep.GetStoragePath())
 }
@@ -38,7 +38,7 @@ func TestEventPersistence_Persist(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	event := PersistedEvent{
 		ID:        "evt_test123",
@@ -59,7 +59,7 @@ func TestEventPersistence_FlushBuffer(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	// Add an event
 	event := PersistedEvent{
@@ -97,7 +97,7 @@ func TestEventPersistence_AutoFlushOnBufferFull(t *testing.T) {
 		stopCh:        make(chan struct{}),
 	}
 	ep.currentFile = ep.generateFileName()
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	// Add events up to buffer size
 	for i := 0; i < 5; i++ {
@@ -134,12 +134,12 @@ func TestEventPersistence_Recover(t *testing.T) {
 	}
 	err = ep1.Flush()
 	require.NoError(t, err)
-	ep1.Close()
+	_ = ep1.Close()
 
 	// Second persistence session - recover events
 	ep2, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep2.Close()
+	defer func() { _ = ep2.Close() }()
 
 	recovered, err := ep2.Recover()
 	require.NoError(t, err)
@@ -177,12 +177,12 @@ func TestEventPersistence_RecoverSendingEvents(t *testing.T) {
 	// Mark as sending
 	err = ep1.MarkSending([]string{"evt_sending1"})
 	require.NoError(t, err)
-	ep1.Close()
+	_ = ep1.Close()
 
 	// Recover - sending events should be reset to pending
 	ep2, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep2.Close()
+	defer func() { _ = ep2.Close() }()
 
 	recovered, err := ep2.Recover()
 	require.NoError(t, err)
@@ -195,7 +195,7 @@ func TestEventPersistence_MarkSent(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	// Add and flush events
 	events := []PersistedEvent{
@@ -203,9 +203,9 @@ func TestEventPersistence_MarkSent(t *testing.T) {
 		{ID: "evt_sent2", Type: "test.event", Timestamp: time.Now().UnixMilli(), Status: EventStatusPending},
 	}
 	for _, e := range events {
-		ep.Persist(e)
+		_ = ep.Persist(e)
 	}
-	ep.Flush()
+	_ = ep.Flush()
 
 	// Mark as sent
 	err = ep.MarkSent([]string{"evt_sent1"})
@@ -223,7 +223,7 @@ func TestEventPersistence_Cleanup(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	// Add events
 	events := []PersistedEvent{
@@ -232,9 +232,9 @@ func TestEventPersistence_Cleanup(t *testing.T) {
 		{ID: "evt_cleanup3", Type: "test.event", Timestamp: time.Now().UnixMilli(), Status: EventStatusPending},
 	}
 	for _, e := range events {
-		ep.Persist(e)
+		_ = ep.Persist(e)
 	}
-	ep.Flush()
+	_ = ep.Flush()
 
 	// Mark some as sent
 	err = ep.MarkSent([]string{"evt_cleanup1", "evt_cleanup2"})
@@ -256,7 +256,7 @@ func TestEventPersistence_FileLocking(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	// Test concurrent access - verify no errors and at least some events were persisted
 	var wg sync.WaitGroup
@@ -301,7 +301,7 @@ func TestEventPersistence_ConcurrentFlush(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, 100*time.Millisecond, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	var wg sync.WaitGroup
 	totalEvents := 60
@@ -346,7 +346,7 @@ func TestEventPersistence_StartStop(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, 50*time.Millisecond, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	ep.Start()
 
@@ -376,7 +376,7 @@ func TestEventPersistence_EmptyRecovery(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	recovered, err := ep.Recover()
 	require.NoError(t, err)
@@ -388,7 +388,7 @@ func TestEventPersistence_EventWithContext(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	event := PersistedEvent{
 		ID:        "evt_ctx1",
@@ -419,7 +419,7 @@ func TestEventPersistence_MarkFailed(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	// Add event
 	event := PersistedEvent{
@@ -448,7 +448,7 @@ func TestEventPersisterAdapter(t *testing.T) {
 
 	ep, err := NewEventPersistence(tempDir, 10000, time.Second, &NullLogger{})
 	require.NoError(t, err)
-	defer ep.Close()
+	defer func() { _ = ep.Close() }()
 
 	adapter := NewEventPersisterAdapter(ep)
 	require.NotNil(t, adapter)
