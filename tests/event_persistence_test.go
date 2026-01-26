@@ -1,4 +1,4 @@
-package flagkit
+package tests
 
 import (
 	"os"
@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/flagkit/flagkit-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -84,25 +85,22 @@ func TestEventPersistence_FlushBuffer(t *testing.T) {
 	assert.Len(t, files, 1)
 }
 
-func TestEventPersistence_AutoFlushOnBufferFull(t *testing.T) {
+func TestEventPersistence_ManyEvents(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create with small buffer size
-	ep := &EventPersistence{
-		storagePath:   tempDir,
-		maxEvents:     10000,
-		flushInterval: time.Minute,
-		buffer:        make([]PersistedEvent, 0, 5),
-		bufferSize:    5,
-		stopCh:        make(chan struct{}),
-	}
-	ep.currentFile = ep.generateFileName()
+	// Create event persistence with small flush interval
+	ep, err := NewEventPersistence(tempDir, 10000, 50*time.Millisecond, &NullLogger{})
+	require.NoError(t, err)
 	defer func() { _ = ep.Close() }()
 
-	// Add events up to buffer size
-	for i := 0; i < 5; i++ {
+	// Start background flush
+	ep.Start()
+
+	// Add many events
+	numEvents := 20
+	for i := 0; i < numEvents; i++ {
 		event := PersistedEvent{
-			ID:        generateEventID(),
+			ID:        GenerateEventID(),
 			Type:      "test.event",
 			Timestamp: time.Now().UnixMilli(),
 			Status:    EventStatusPending,
@@ -111,8 +109,17 @@ func TestEventPersistence_AutoFlushOnBufferFull(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// Wait for background flush
+	time.Sleep(100 * time.Millisecond)
+	ep.Stop()
+
 	// Buffer should have been flushed
 	assert.Equal(t, 0, ep.GetBufferSize())
+
+	// Verify all events were persisted
+	recovered, err := ep.Recover()
+	require.NoError(t, err)
+	assert.Equal(t, numEvents, len(recovered))
 }
 
 func TestEventPersistence_Recover(t *testing.T) {
@@ -270,7 +277,7 @@ func TestEventPersistence_FileLocking(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < eventsPerGoroutine; j++ {
 				event := PersistedEvent{
-					ID:        generateEventID(),
+					ID:        GenerateEventID(),
 					Type:      "test.concurrent",
 					Timestamp: time.Now().UnixMilli(),
 					Status:    EventStatusPending,
@@ -316,7 +323,7 @@ func TestEventPersistence_ConcurrentFlush(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < 20; j++ {
 				event := PersistedEvent{
-					ID:        generateEventID(),
+					ID:        GenerateEventID(),
 					Type:      "test.concurrent.flush",
 					Timestamp: time.Now().UnixMilli(),
 					Status:    EventStatusPending,
@@ -353,7 +360,7 @@ func TestEventPersistence_StartStop(t *testing.T) {
 	// Add events
 	for i := 0; i < 5; i++ {
 		event := PersistedEvent{
-			ID:        generateEventID(),
+			ID:        GenerateEventID(),
 			Type:      "test.startstop",
 			Timestamp: time.Now().UnixMilli(),
 			Status:    EventStatusPending,
