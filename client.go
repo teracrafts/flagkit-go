@@ -1,6 +1,7 @@
 package flagkit
 
 import (
+	"math/rand"
 	"sync"
 	"time"
 
@@ -440,6 +441,11 @@ func (c *Client) Close() error {
 
 // evaluate performs flag evaluation.
 func (c *Client) evaluate(key string, defaultValue any, ctx *EvaluationContext, expectedType FlagType) *EvaluationResult {
+	// Apply evaluation jitter if enabled (cache timing attack protection)
+	if c.options.EvaluationJitter.Enabled {
+		c.applyEvaluationJitter()
+	}
+
 	// Validate key
 	if key == "" {
 		c.logger.Warn("Invalid flag key", "key", key)
@@ -595,6 +601,30 @@ func getContext(ctx []*EvaluationContext) *EvaluationContext {
 		return ctx[0]
 	}
 	return nil
+}
+
+// applyEvaluationJitter applies a random delay for cache timing attack protection.
+func (c *Client) applyEvaluationJitter() {
+	minMs := c.options.EvaluationJitter.MinMs
+	maxMs := c.options.EvaluationJitter.MaxMs
+
+	// Ensure valid range
+	if minMs < 0 {
+		minMs = 0
+	}
+	if maxMs < minMs {
+		maxMs = minMs
+	}
+
+	// Calculate jitter: min + rand.Intn(max-min+1)
+	jitterMs := minMs
+	if maxMs > minMs {
+		jitterMs = minMs + rand.Intn(maxMs-minMs+1)
+	}
+
+	if jitterMs > 0 {
+		time.Sleep(time.Duration(jitterMs) * time.Millisecond)
+	}
 }
 
 // generateSessionID generates a random session ID.

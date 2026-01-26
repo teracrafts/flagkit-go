@@ -110,6 +110,22 @@ type Options struct {
 	// PersistenceFlushInterval is the interval between disk writes.
 	// Default: 1 second.
 	PersistenceFlushInterval time.Duration
+
+	// EvaluationJitter configures timing jitter for flag evaluations.
+	// This provides protection against cache timing attacks.
+	EvaluationJitter EvaluationJitterConfig
+}
+
+// EvaluationJitterConfig configures timing jitter for cache timing attack protection.
+type EvaluationJitterConfig struct {
+	// Enabled enables evaluation jitter. Default: false.
+	Enabled bool
+
+	// MinMs is the minimum jitter delay in milliseconds. Default: 5.
+	MinMs int
+
+	// MaxMs is the maximum jitter delay in milliseconds. Default: 15.
+	MaxMs int
 }
 
 // DefaultKeyRotationGracePeriod is the default grace period for key rotation.
@@ -120,6 +136,12 @@ const DefaultMaxPersistedEvents = 10000
 
 // DefaultPersistenceFlushInterval is the default interval between persistence disk writes.
 const DefaultPersistenceFlushInterval = time.Second
+
+// Default evaluation jitter values for cache timing attack protection.
+const (
+	DefaultEvaluationJitterMinMs = 5
+	DefaultEvaluationJitterMaxMs = 15
+)
 
 // DefaultOptions returns options with default values.
 func DefaultOptions(apiKey string) *Options {
@@ -137,6 +159,11 @@ func DefaultOptions(apiKey string) *Options {
 		Debug:                  false,
 		KeyRotationGracePeriod: DefaultKeyRotationGracePeriod,
 		EnableRequestSigning:   true,
+		EvaluationJitter: EvaluationJitterConfig{
+			Enabled: false,
+			MinMs:   DefaultEvaluationJitterMinMs,
+			MaxMs:   DefaultEvaluationJitterMaxMs,
+		},
 	}
 }
 
@@ -352,5 +379,17 @@ func WithMaxPersistedEvents(max int) OptionFunc {
 func WithPersistenceFlushInterval(interval time.Duration) OptionFunc {
 	return func(o *Options) {
 		o.PersistenceFlushInterval = interval
+	}
+}
+
+// WithEvaluationJitter configures evaluation jitter for cache timing attack protection.
+// When enabled, a random delay between minMs and maxMs is added at the start of each flag evaluation.
+func WithEvaluationJitter(enabled bool, minMs, maxMs int) OptionFunc {
+	return func(o *Options) {
+		o.EvaluationJitter = EvaluationJitterConfig{
+			Enabled: enabled,
+			MinMs:   minMs,
+			MaxMs:   maxMs,
+		}
 	}
 }
