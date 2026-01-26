@@ -1,10 +1,12 @@
-package flagkit
+package tests
 
 import (
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	. "github.com/flagkit/flagkit-go"
 )
 
 func TestIsPotentialPIIField(t *testing.T) {
