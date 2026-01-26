@@ -101,24 +101,47 @@ func (e *FlagKitError) IsRecoverable() bool {
 }
 
 // NewError creates a new FlagKitError.
+// If error sanitization is enabled, the message will be sanitized to remove sensitive information.
 func NewError(code ErrorCode, message string) *FlagKitError {
-	return &FlagKitError{
+	config := GetDefaultSanitizationConfig()
+	sanitizedMsg := SanitizeErrorMessage(message, config)
+
+	err := &FlagKitError{
 		Code:        code,
-		Message:     message,
+		Message:     sanitizedMsg,
 		Recoverable: isRecoverable(code),
 		Details:     make(map[string]any),
 	}
+
+	// Preserve original message if configured
+	if config.Enabled && config.PreserveOriginal && message != sanitizedMsg {
+		err.Details["originalMessage"] = message
+	}
+
+	return err
 }
 
 // NewErrorWithCause creates a new FlagKitError with a cause.
+// If error sanitization is enabled, both the message and cause will be sanitized.
 func NewErrorWithCause(code ErrorCode, message string, cause error) *FlagKitError {
-	return &FlagKitError{
+	config := GetDefaultSanitizationConfig()
+	sanitizedMsg := SanitizeErrorMessage(message, config)
+	sanitizedCause := sanitizeCause(cause)
+
+	err := &FlagKitError{
 		Code:        code,
-		Message:     message,
-		Cause:       cause,
+		Message:     sanitizedMsg,
+		Cause:       sanitizedCause,
 		Recoverable: isRecoverable(code),
 		Details:     make(map[string]any),
 	}
+
+	// Preserve original message if configured
+	if config.Enabled && config.PreserveOriginal && message != sanitizedMsg {
+		err.Details["originalMessage"] = message
+	}
+
+	return err
 }
 
 // WithDetails adds details to the error.

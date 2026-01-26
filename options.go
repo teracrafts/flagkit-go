@@ -121,6 +121,9 @@ type Options struct {
 	// EvaluationJitter configures timing jitter for flag evaluations.
 	// This provides protection against cache timing attacks.
 	EvaluationJitter EvaluationJitterConfig
+
+	// ErrorSanitization configures error message sanitization to prevent information leakage.
+	ErrorSanitization ErrorSanitizationConfig
 }
 
 // EvaluationJitterConfig configures timing jitter for cache timing attack protection.
@@ -464,5 +467,23 @@ func WithBootstrapVerification(enabled bool, maxAge time.Duration, onFailure str
 func WithSignedBootstrap(config *BootstrapConfig) OptionFunc {
 	return func(o *Options) {
 		o.BootstrapWithSignature = config
+	}
+}
+
+// WithErrorSanitization enables error message sanitization to prevent information leakage.
+// When enabled, sensitive information like file paths, IP addresses, API keys, and
+// connection strings are redacted from error messages.
+func WithErrorSanitization(enabled bool) OptionFunc {
+	return func(o *Options) {
+		o.ErrorSanitization.Enabled = enabled
+	}
+}
+
+// WithErrorSanitizationConfig sets the full error sanitization configuration.
+// Use this for more control over sanitization behavior, including preserving
+// original messages for debugging.
+func WithErrorSanitizationConfig(config ErrorSanitizationConfig) OptionFunc {
+	return func(o *Options) {
+		o.ErrorSanitization = config
 	}
 }
