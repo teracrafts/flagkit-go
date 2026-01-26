@@ -66,8 +66,15 @@ type Options struct {
 	// Retries is the number of retry attempts for failed requests.
 	Retries int
 
-	// Bootstrap provides initial flag values.
+	// Bootstrap provides initial flag values (legacy format).
 	Bootstrap map[string]any
+
+	// BootstrapWithSignature provides signed bootstrap flag values.
+	// If set, this takes precedence over Bootstrap.
+	BootstrapWithSignature *BootstrapConfig
+
+	// BootstrapVerification configures bootstrap signature verification.
+	BootstrapVerification BootstrapVerificationConfig
 
 	// Debug enables debug logging.
 	Debug bool
@@ -128,6 +135,37 @@ type EvaluationJitterConfig struct {
 	MaxMs int
 }
 
+// BootstrapConfig represents bootstrap flag values with optional HMAC signature verification.
+type BootstrapConfig struct {
+	// Flags is the map of flag keys to their values.
+	Flags map[string]any `json:"flags"`
+
+	// Signature is the HMAC-SHA256 signature of the canonicalized flags JSON.
+	// Optional: if empty, no verification is performed.
+	Signature string `json:"signature,omitempty"`
+
+	// Timestamp is the Unix timestamp (milliseconds) when the bootstrap was generated.
+	// Used for staleness checking when signature verification is enabled.
+	Timestamp int64 `json:"timestamp,omitempty"`
+}
+
+// BootstrapVerificationConfig configures bootstrap signature verification behavior.
+type BootstrapVerificationConfig struct {
+	// Enabled enables signature verification for bootstrap values. Default: true.
+	Enabled bool
+
+	// MaxAge is the maximum age of bootstrap data. Default: 24 hours.
+	// Bootstrap data older than this will be rejected if verification is enabled.
+	MaxAge time.Duration
+
+	// OnFailure specifies the behavior when verification fails.
+	// Valid values: "warn", "error", "ignore". Default: "warn".
+	// - "warn": Log a warning but continue using bootstrap values
+	// - "error": Return an error and don't use bootstrap values
+	// - "ignore": Silently ignore verification failures
+	OnFailure string
+}
+
 // DefaultKeyRotationGracePeriod is the default grace period for key rotation.
 const DefaultKeyRotationGracePeriod = 5 * time.Minute
 
@@ -141,6 +179,12 @@ const DefaultPersistenceFlushInterval = time.Second
 const (
 	DefaultEvaluationJitterMinMs = 5
 	DefaultEvaluationJitterMaxMs = 15
+)
+
+// Default bootstrap verification values.
+const (
+	DefaultBootstrapMaxAge    = 24 * time.Hour
+	DefaultBootstrapOnFailure = "warn"
 )
 
 // DefaultOptions returns options with default values.
@@ -163,6 +207,11 @@ func DefaultOptions(apiKey string) *Options {
 			Enabled: false,
 			MinMs:   DefaultEvaluationJitterMinMs,
 			MaxMs:   DefaultEvaluationJitterMaxMs,
+		},
+		BootstrapVerification: BootstrapVerificationConfig{
+			Enabled:   true,
+			MaxAge:    DefaultBootstrapMaxAge,
+			OnFailure: DefaultBootstrapOnFailure,
 		},
 	}
 }
@@ -391,5 +440,29 @@ func WithEvaluationJitter(enabled bool, minMs, maxMs int) OptionFunc {
 			MinMs:   minMs,
 			MaxMs:   maxMs,
 		}
+	}
+}
+
+// WithBootstrapVerification configures bootstrap signature verification.
+// When enabled, bootstrap data with signatures will be verified using HMAC-SHA256.
+// Parameters:
+//   - enabled: whether to perform signature verification (default: true)
+//   - maxAge: maximum age of bootstrap data (default: 24 hours)
+//   - onFailure: behavior when verification fails - "warn", "error", or "ignore" (default: "warn")
+func WithBootstrapVerification(enabled bool, maxAge time.Duration, onFailure string) OptionFunc {
+	return func(o *Options) {
+		o.BootstrapVerification = BootstrapVerificationConfig{
+			Enabled:   enabled,
+			MaxAge:    maxAge,
+			OnFailure: onFailure,
+		}
+	}
+}
+
+// WithSignedBootstrap sets bootstrap values with HMAC signature verification.
+// This takes precedence over WithBootstrap if both are set.
+func WithSignedBootstrap(config *BootstrapConfig) OptionFunc {
+	return func(o *Options) {
+		o.BootstrapWithSignature = config
 	}
 }

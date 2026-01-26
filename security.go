@@ -4,8 +4,10 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -408,4 +410,199 @@ func VerifySignedPayload(payload SignedPayload, apiKey string, maxAgeMs int64) b
 	expectedSignature := GenerateHMACSHA256(message, apiKey)
 
 	return hmac.Equal([]byte(payload.Signature), []byte(expectedSignature))
+}
+
+// CanonicalizeObject converts a map to a canonical JSON string for signature verification.
+// Keys are sorted alphabetically, and the output is deterministic.
+func CanonicalizeObject(obj map[string]any) (string, error) {
+	if obj == nil {
+		return "{}", nil
+	}
+
+	// Use a custom encoder to ensure consistent output
+	canonical, err := canonicalizeValue(obj)
+	if err != nil {
+		return "", err
+	}
+
+	return canonical, nil
+}
+
+// canonicalizeValue recursively canonicalizes a value.
+func canonicalizeValue(v any) (string, error) {
+	switch val := v.(type) {
+	case nil:
+		return "null", nil
+	case bool:
+		if val {
+			return "true", nil
+		}
+		return "false", nil
+	case float64:
+		// Handle integers stored as float64
+		if val == float64(int64(val)) {
+			return strconv.FormatInt(int64(val), 10), nil
+		}
+		return strconv.FormatFloat(val, 'f', -1, 64), nil
+	case float32:
+		f64 := float64(val)
+		if f64 == float64(int64(f64)) {
+			return strconv.FormatInt(int64(f64), 10), nil
+		}
+		return strconv.FormatFloat(f64, 'f', -1, 32), nil
+	case int:
+		return strconv.Itoa(val), nil
+	case int64:
+		return strconv.FormatInt(val, 10), nil
+	case int32:
+		return strconv.FormatInt(int64(val), 10), nil
+	case string:
+		// Use JSON encoding for proper escaping
+		bytes, err := json.Marshal(val)
+		if err != nil {
+			return "", err
+		}
+		return string(bytes), nil
+	case []any:
+		return canonicalizeArray(val)
+	case map[string]any:
+		return canonicalizeMap(val)
+	default:
+		// For unknown types, use JSON marshaling
+		bytes, err := json.Marshal(val)
+		if err != nil {
+			return "", fmt.Errorf("cannot canonicalize value of type %T: %w", v, err)
+		}
+		return string(bytes), nil
+	}
+}
+
+// canonicalizeArray canonicalizes an array.
+func canonicalizeArray(arr []any) (string, error) {
+	if len(arr) == 0 {
+		return "[]", nil
+	}
+
+	parts := make([]string, len(arr))
+	for i, v := range arr {
+		canonical, err := canonicalizeValue(v)
+		if err != nil {
+			return "", err
+		}
+		parts[i] = canonical
+	}
+
+	return "[" + strings.Join(parts, ",") + "]", nil
+}
+
+// canonicalizeMap canonicalizes a map with sorted keys.
+func canonicalizeMap(m map[string]any) (string, error) {
+	if len(m) == 0 {
+		return "{}", nil
+	}
+
+	// Get sorted keys
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	parts := make([]string, len(keys))
+	for i, k := range keys {
+		keyJSON, err := json.Marshal(k)
+		if err != nil {
+			return "", err
+		}
+
+		valueCanonical, err := canonicalizeValue(m[k])
+		if err != nil {
+			return "", err
+		}
+
+		parts[i] = string(keyJSON) + ":" + valueCanonical
+	}
+
+	return "{" + strings.Join(parts, ",") + "}", nil
+}
+
+// BootstrapVerificationResult contains the result of bootstrap verification.
+type BootstrapVerificationResult struct {
+	Valid   bool
+	Error   error
+	Message string
+}
+
+// VerifyBootstrapSignature verifies the HMAC-SHA256 signature of bootstrap data.
+// The signature is computed over: timestamp.canonicalized_flags_json
+// Returns (valid, error) where error contains details about any verification failure.
+func VerifyBootstrapSignature(bootstrap BootstrapConfig, apiKey string, config BootstrapVerificationConfig) (bool, error) {
+	// If verification is disabled, always return valid
+	if !config.Enabled {
+		return true, nil
+	}
+
+	// If no signature provided, skip verification (legacy format)
+	if bootstrap.Signature == "" {
+		return true, nil
+	}
+
+	// Check timestamp age if MaxAge is set
+	if config.MaxAge > 0 && bootstrap.Timestamp > 0 {
+		now := time.Now().UnixMilli()
+		age := now - bootstrap.Timestamp
+		maxAgeMs := config.MaxAge.Milliseconds()
+
+		if age > maxAgeMs {
+			return false, NewError(ErrSecuritySignatureInvalid,
+				fmt.Sprintf("bootstrap data is expired: age %dms exceeds max age %dms", age, maxAgeMs))
+		}
+
+		// Check for future timestamp (clock skew protection)
+		if age < -300000 { // Allow 5 minutes of clock skew
+			return false, NewError(ErrSecuritySignatureInvalid,
+				"bootstrap timestamp is in the future")
+		}
+	}
+
+	// Canonicalize the flags
+	canonical, err := CanonicalizeObject(bootstrap.Flags)
+	if err != nil {
+		return false, NewErrorWithCause(ErrSecuritySignatureInvalid,
+			"failed to canonicalize bootstrap flags", err)
+	}
+
+	// Build the message: timestamp.canonical_json
+	message := strconv.FormatInt(bootstrap.Timestamp, 10) + "." + canonical
+
+	// Generate expected signature
+	expectedSignature := GenerateHMACSHA256(message, apiKey)
+
+	// Use constant-time comparison
+	if !hmac.Equal([]byte(bootstrap.Signature), []byte(expectedSignature)) {
+		return false, NewError(ErrSecuritySignatureInvalid,
+			"bootstrap signature verification failed: signature mismatch")
+	}
+
+	return true, nil
+}
+
+// CreateBootstrapSignature creates a signed bootstrap configuration.
+// This is a helper function for generating signed bootstrap data.
+func CreateBootstrapSignature(flags map[string]any, apiKey string) (*BootstrapConfig, error) {
+	timestamp := time.Now().UnixMilli()
+
+	canonical, err := CanonicalizeObject(flags)
+	if err != nil {
+		return nil, fmt.Errorf("failed to canonicalize flags: %w", err)
+	}
+
+	message := strconv.FormatInt(timestamp, 10) + "." + canonical
+	signature := GenerateHMACSHA256(message, apiKey)
+
+	return &BootstrapConfig{
+		Flags:     flags,
+		Signature: signature,
+		Timestamp: timestamp,
+	}, nil
 }

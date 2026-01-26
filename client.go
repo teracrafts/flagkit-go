@@ -500,7 +500,44 @@ func (c *Client) evaluate(key string, defaultValue any, ctx *EvaluationContext, 
 
 // applyBootstrap applies bootstrap values to cache.
 func (c *Client) applyBootstrap() {
-	for key, value := range c.options.Bootstrap {
+	var flags map[string]any
+
+	// Check for signed bootstrap first (takes precedence)
+	if c.options.BootstrapWithSignature != nil {
+		bootstrap := c.options.BootstrapWithSignature
+
+		// Verify signature if present
+		if bootstrap.Signature != "" {
+			valid, err := VerifyBootstrapSignature(*bootstrap, c.options.APIKey, c.options.BootstrapVerification)
+
+			if !valid {
+				// Handle verification failure based on OnFailure setting
+				switch c.options.BootstrapVerification.OnFailure {
+				case "error":
+					c.logger.Error("Bootstrap signature verification failed", "error", err.Error())
+					if c.options.OnError != nil {
+						c.options.OnError(err)
+					}
+					// Don't apply bootstrap values
+					return
+				case "ignore":
+					// Silently continue with bootstrap values
+				default: // "warn" is the default
+					c.logger.Warn("Bootstrap signature verification failed, using values anyway", "error", err.Error())
+				}
+			} else {
+				c.logger.Debug("Bootstrap signature verified successfully")
+			}
+		}
+
+		flags = bootstrap.Flags
+	} else {
+		// Fall back to legacy bootstrap format
+		flags = c.options.Bootstrap
+	}
+
+	// Apply the flags to cache
+	for key, value := range flags {
 		flag := internal.FlagState{
 			Key:          key,
 			Value:        value,
