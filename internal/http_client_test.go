@@ -158,7 +158,7 @@ func TestHTTPClientPost(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receivedHeaders = r.Header
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"success":true}`))
+			_, _ = w.Write([]byte(`{"success":true}`))
 		}))
 		defer server.Close()
 
@@ -199,7 +199,7 @@ func TestHTTPClientPost(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receivedHeaders = r.Header
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"success":true}`))
+			_, _ = w.Write([]byte(`{"success":true}`))
 		}))
 		defer server.Close()
 
@@ -227,10 +227,10 @@ func TestHTTPClientPost(t *testing.T) {
 			callCount++
 			if callCount == 1 {
 				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte(`{"error":"unauthorized"}`))
+				_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
 			} else {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{"success":true}`))
+				_, _ = w.Write([]byte(`{"success":true}`))
 			}
 		}))
 		defer server.Close()
@@ -264,7 +264,7 @@ func TestHTTPClientGet(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success":true}`))
+		_, _ = w.Write([]byte(`{"success":true}`))
 	}))
 	defer server.Close()
 
