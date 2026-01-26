@@ -1,9 +1,14 @@
-package internal
+package http
 
 import (
 	"sync"
 	"time"
+
+	"github.com/flagkit/flagkit-go/internal/types"
 )
+
+// circuitLogger is an alias for the types.Logger interface.
+type circuitLogger = types.Logger
 
 // CircuitState represents the state of a circuit breaker.
 type CircuitState int
@@ -55,7 +60,7 @@ type CircuitBreaker struct {
 	halfOpenAllowed    int
 	halfOpenInProgress int
 	mu                 sync.Mutex
-	logger             Logger
+	logger             circuitLogger
 }
 
 // NewCircuitBreaker creates a new circuit breaker.
