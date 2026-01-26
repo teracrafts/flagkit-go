@@ -1,13 +1,15 @@
-package internal
+package core
 
 import (
 	"sync"
 	"time"
+
+	"github.com/flagkit/flagkit-go/internal/types"
 )
 
 // CacheEntry represents a cached flag with metadata.
 type CacheEntry struct {
-	Flag      FlagState
+	Flag      types.FlagState
 	FetchedAt time.Time
 	ExpiresAt time.Time
 }
@@ -18,14 +20,14 @@ type Cache struct {
 	mu      sync.RWMutex
 	ttl     time.Duration
 	maxSize int
-	logger  Logger
+	logger  types.Logger
 }
 
 // CacheConfig contains cache configuration.
 type CacheConfig struct {
 	TTL     time.Duration
 	MaxSize int
-	Logger  Logger
+	Logger  types.Logger
 }
 
 // DefaultCacheConfig returns default cache configuration.
@@ -51,7 +53,7 @@ func NewCache(config *CacheConfig) *Cache {
 
 // Get retrieves a flag from the cache.
 // Returns nil if not found or expired.
-func (c *Cache) Get(key string) *FlagState {
+func (c *Cache) Get(key string) *types.FlagState {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -74,7 +76,7 @@ func (c *Cache) Get(key string) *FlagState {
 }
 
 // GetStale retrieves a flag from the cache even if expired.
-func (c *Cache) GetStale(key string) *FlagState {
+func (c *Cache) GetStale(key string) *types.FlagState {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -98,7 +100,7 @@ func (c *Cache) IsStale(key string) bool {
 }
 
 // Set stores a flag in the cache.
-func (c *Cache) Set(key string, flag FlagState, ttl ...time.Duration) {
+func (c *Cache) Set(key string, flag types.FlagState, ttl ...time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -127,7 +129,7 @@ func (c *Cache) Set(key string, flag FlagState, ttl ...time.Duration) {
 }
 
 // SetMany stores multiple flags in the cache.
-func (c *Cache) SetMany(flags []FlagState, ttl ...time.Duration) {
+func (c *Cache) SetMany(flags []types.FlagState, ttl ...time.Duration) {
 	for _, flag := range flags {
 		c.Set(flag.Key, flag, ttl...)
 	}
@@ -181,11 +183,11 @@ func (c *Cache) GetAllKeys() []string {
 }
 
 // GetAll returns all cached flags (including stale).
-func (c *Cache) GetAll() []FlagState {
+func (c *Cache) GetAll() []types.FlagState {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	flags := make([]FlagState, 0, len(c.entries))
+	flags := make([]types.FlagState, 0, len(c.entries))
 	for _, entry := range c.entries {
 		flags = append(flags, entry.Flag)
 	}
@@ -193,12 +195,12 @@ func (c *Cache) GetAll() []FlagState {
 }
 
 // GetAllValid returns all non-expired cached flags.
-func (c *Cache) GetAllValid() []FlagState {
+func (c *Cache) GetAllValid() []types.FlagState {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	now := time.Now()
-	flags := make([]FlagState, 0)
+	flags := make([]types.FlagState, 0)
 	for _, entry := range c.entries {
 		if now.Before(entry.ExpiresAt) {
 			flags = append(flags, entry.Flag)
