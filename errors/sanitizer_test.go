@@ -1,4 +1,4 @@
-package flagkit
+package errors
 
 import (
 	"errors"
@@ -475,29 +475,5 @@ func TestGetSetDefaultSanitizationConfig(t *testing.T) {
 	}
 }
 
-func TestWithErrorSanitization(t *testing.T) {
-	opts := DefaultOptions("sdk_test_api_key_12345678")
-
-	WithErrorSanitization(true)(opts)
-
-	if !opts.ErrorSanitization.Enabled {
-		t.Error("Expected ErrorSanitization.Enabled to be true")
-	}
-}
-
-func TestWithErrorSanitizationConfig(t *testing.T) {
-	opts := DefaultOptions("sdk_test_api_key_12345678")
-
-	config := ErrorSanitizationConfig{
-		Enabled:          true,
-		PreserveOriginal: true,
-	}
-	WithErrorSanitizationConfig(config)(opts)
-
-	if !opts.ErrorSanitization.Enabled {
-		t.Error("Expected ErrorSanitization.Enabled to be true")
-	}
-	if !opts.ErrorSanitization.PreserveOriginal {
-		t.Error("Expected ErrorSanitization.PreserveOriginal to be true")
-	}
-}
+// Tests for WithErrorSanitization and WithErrorSanitizationConfig are in
+// sanitizer_integration_test.go (uses errors_test package to avoid circular imports)
