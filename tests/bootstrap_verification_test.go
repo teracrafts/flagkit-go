@@ -1,8 +1,10 @@
-package flagkit
+package tests
 
 import (
 	"testing"
 	"time"
+
+	. "github.com/flagkit/flagkit-go"
 )
 
 func TestCanonicalizeObject(t *testing.T) {
