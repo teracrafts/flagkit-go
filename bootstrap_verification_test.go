@@ -420,7 +420,7 @@ func TestBootstrapVerificationClientIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		value := client.GetBooleanValue("feature_legacy", false)
 		if !value {
@@ -441,7 +441,7 @@ func TestBootstrapVerificationClientIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		value := client.GetBooleanValue("feature_signed", false)
 		if !value {
@@ -469,7 +469,7 @@ func TestBootstrapVerificationClientIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Should still apply values in warn mode
 		value := client.GetBooleanValue("feature_invalid", false)
@@ -505,7 +505,7 @@ func TestBootstrapVerificationClientIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Should NOT apply values in error mode
 		value := client.GetBooleanValue("feature_error", false)
@@ -539,7 +539,7 @@ func TestBootstrapVerificationClientIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Should apply values in ignore mode
 		value := client.GetBooleanValue("feature_ignore", false)
@@ -571,7 +571,7 @@ func TestBootstrapVerificationClientIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		value := client.GetStringValue("feature", "default")
 		if value != "signed_value" {
@@ -597,7 +597,7 @@ func TestBootstrapVerificationClientIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		value := client.GetBooleanValue("feature_no_verify", false)
 		if !value {
