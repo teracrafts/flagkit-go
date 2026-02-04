@@ -32,6 +32,28 @@ type StreamTokenResponse struct {
 	ExpiresIn int    `json:"expiresIn"`
 }
 
+// StreamErrorCode represents SSE error codes from server.
+type StreamErrorCode string
+
+const (
+	// StreamErrorTokenInvalid indicates the token is invalid and re-authentication is needed.
+	StreamErrorTokenInvalid StreamErrorCode = "TOKEN_INVALID"
+	// StreamErrorTokenExpired indicates the token has expired and needs refresh.
+	StreamErrorTokenExpired StreamErrorCode = "TOKEN_EXPIRED"
+	// StreamErrorSubscriptionSuspended indicates the subscription is suspended.
+	StreamErrorSubscriptionSuspended StreamErrorCode = "SUBSCRIPTION_SUSPENDED"
+	// StreamErrorConnectionLimit indicates the connection limit has been reached.
+	StreamErrorConnectionLimit StreamErrorCode = "CONNECTION_LIMIT"
+	// StreamErrorStreamingUnavailable indicates streaming is not available.
+	StreamErrorStreamingUnavailable StreamErrorCode = "STREAMING_UNAVAILABLE"
+)
+
+// StreamErrorData represents SSE error event data from server.
+type StreamErrorData struct {
+	Code    StreamErrorCode `json:"code"`
+	Message string          `json:"message"`
+}
+
 // StreamingConfig contains streaming configuration.
 type StreamingConfig struct {
 	ReconnectInterval    time.Duration
@@ -54,14 +76,16 @@ func DefaultStreamingConfig() *StreamingConfig {
 // 1. Fetches short-lived token via POST with API key in header
 // 2. Connects to SSE endpoint with disposable token in URL
 type StreamingManager struct {
-	baseURL              string
-	getAPIKey            func() string
-	config               *StreamingConfig
-	onFlagUpdate         func(flag *types.FlagState)
-	onFlagDelete         func(key string)
-	onFlagsReset         func(flags []*types.FlagState)
-	onFallbackToPolling  func()
-	logger               Logger
+	baseURL                  string
+	getAPIKey                func() string
+	config                   *StreamingConfig
+	onFlagUpdate             func(flag *types.FlagState)
+	onFlagDelete             func(key string)
+	onFlagsReset             func(flags []*types.FlagState)
+	onFallbackToPolling      func()
+	onSubscriptionError      func(message string)
+	onConnectionLimitError   func()
+	logger                   Logger
 
 	state               StreamingState
 	consecutiveFailures int
@@ -83,22 +107,26 @@ func NewStreamingManager(
 	onFlagDelete func(key string),
 	onFlagsReset func(flags []*types.FlagState),
 	onFallbackToPolling func(),
+	onSubscriptionError func(message string),
+	onConnectionLimitError func(),
 	logger Logger,
 ) *StreamingManager {
 	if config == nil {
 		config = DefaultStreamingConfig()
 	}
 	return &StreamingManager{
-		baseURL:             baseURL,
-		getAPIKey:           getAPIKey,
-		config:              config,
-		onFlagUpdate:        onFlagUpdate,
-		onFlagDelete:        onFlagDelete,
-		onFlagsReset:        onFlagsReset,
-		onFallbackToPolling: onFallbackToPolling,
-		logger:              logger,
-		state:               StreamingStateDisconnected,
-		client:              &http.Client{Timeout: 0}, // No timeout for SSE
+		baseURL:                baseURL,
+		getAPIKey:              getAPIKey,
+		config:                 config,
+		onFlagUpdate:           onFlagUpdate,
+		onFlagDelete:           onFlagDelete,
+		onFlagsReset:           onFlagsReset,
+		onFallbackToPolling:    onFallbackToPolling,
+		onSubscriptionError:    onSubscriptionError,
+		onConnectionLimitError: onConnectionLimitError,
+		logger:                 logger,
+		state:                  StreamingStateDisconnected,
+		client:                 &http.Client{Timeout: 0}, // No timeout for SSE
 	}
 }
 
@@ -357,6 +385,90 @@ func (sm *StreamingManager) processEvent(eventType, data string) {
 		sm.mu.Lock()
 		sm.lastHeartbeat = time.Now()
 		sm.mu.Unlock()
+	case "error":
+		sm.handleStreamError(data)
+	}
+}
+
+// handleStreamError handles SSE error events from the server.
+// These are application-level errors sent as SSE events, not connection errors.
+//
+// Error codes:
+// - TOKEN_INVALID: Re-authenticate completely
+// - TOKEN_EXPIRED: Refresh token and reconnect
+// - SUBSCRIPTION_SUSPENDED: Notify user, fall back to cached values
+// - CONNECTION_LIMIT: Implement backoff or close other connections
+// - STREAMING_UNAVAILABLE: Fall back to polling
+func (sm *StreamingManager) handleStreamError(data string) {
+	var errorData StreamErrorData
+	if err := json.Unmarshal([]byte(data), &errorData); err != nil {
+		if sm.logger != nil {
+			sm.logger.Debug("Failed to parse stream error event", "error", err)
+		}
+		return
+	}
+
+	if sm.logger != nil {
+		sm.logger.Warn("SSE error event received", "code", errorData.Code, "message", errorData.Message)
+	}
+
+	switch errorData.Code {
+	case StreamErrorTokenExpired:
+		// Token expired, refresh and reconnect
+		if sm.logger != nil {
+			sm.logger.Info("Stream token expired, refreshing...")
+		}
+		sm.Disconnect()
+		sm.Connect() // Will fetch new token
+
+	case StreamErrorTokenInvalid:
+		// Token is invalid, need full re-authentication
+		if sm.logger != nil {
+			sm.logger.Error("Stream token invalid, re-authenticating...")
+		}
+		sm.Disconnect()
+		sm.Connect() // Will fetch new token
+
+	case StreamErrorSubscriptionSuspended:
+		// Subscription issue - notify and fall back
+		if sm.logger != nil {
+			sm.logger.Error("Subscription suspended", "message", errorData.Message)
+		}
+		if sm.onSubscriptionError != nil {
+			sm.onSubscriptionError(errorData.Message)
+		}
+		sm.mu.Lock()
+		sm.cleanup()
+		sm.state = StreamingStateFailed
+		sm.mu.Unlock()
+		sm.onFallbackToPolling()
+
+	case StreamErrorConnectionLimit:
+		// Too many connections - implement backoff
+		if sm.logger != nil {
+			sm.logger.Warn("Connection limit reached, backing off...")
+		}
+		if sm.onConnectionLimitError != nil {
+			sm.onConnectionLimitError()
+		}
+		sm.handleConnectionFailure()
+
+	case StreamErrorStreamingUnavailable:
+		// Streaming not available - fall back to polling
+		if sm.logger != nil {
+			sm.logger.Warn("Streaming service unavailable, falling back to polling")
+		}
+		sm.mu.Lock()
+		sm.cleanup()
+		sm.state = StreamingStateFailed
+		sm.mu.Unlock()
+		sm.onFallbackToPolling()
+
+	default:
+		if sm.logger != nil {
+			sm.logger.Warn("Unknown stream error code", "code", errorData.Code)
+		}
+		sm.handleConnectionFailure()
 	}
 }
 
