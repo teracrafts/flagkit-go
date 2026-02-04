@@ -63,6 +63,7 @@ type HTTPClient struct {
 	retry                  *RetryConfig
 	circuitBreaker         *CircuitBreaker
 	logger                 Logger
+	onUsageUpdate          UsageUpdateCallback
 	mu                     sync.RWMutex
 }
 
@@ -77,14 +78,33 @@ type HTTPClientConfig struct {
 	CircuitBreaker         *CircuitBreakerConfig
 	Logger                 Logger
 	LocalPort              int
+	// OnUsageUpdate is called when usage metrics are received from API responses.
+	OnUsageUpdate UsageUpdateCallback
 }
+
+// UsageMetrics contains usage metrics extracted from response headers.
+type UsageMetrics struct {
+	// ApiUsagePercent is the percentage of API call limit used this period (0-150+).
+	ApiUsagePercent float64
+	// EvaluationUsagePercent is the percentage of evaluation limit used (0-150+).
+	EvaluationUsagePercent float64
+	// RateLimitWarning indicates whether approaching rate limit threshold.
+	RateLimitWarning bool
+	// SubscriptionStatus is the current subscription status.
+	// Valid values: "active", "trial", "past_due", "suspended", "cancelled"
+	SubscriptionStatus string
+}
+
+// UsageUpdateCallback is the callback type for usage metrics updates.
+type UsageUpdateCallback func(metrics *UsageMetrics)
 
 // HTTPResponse represents an HTTP response.
 type HTTPResponse struct {
-	StatusCode int
-	Headers    http.Header
-	Body       []byte
-	Data       any
+	StatusCode   int
+	Headers      http.Header
+	Body         []byte
+	Data         any
+	UsageMetrics *UsageMetrics
 }
 
 // NewHTTPClient creates a new HTTP client.
@@ -110,7 +130,8 @@ func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
 		client: &http.Client{
 			Timeout: config.Timeout,
 		},
-		logger: config.Logger,
+		logger:        config.Logger,
+		onUsageUpdate: config.OnUsageUpdate,
 	}
 
 	if config.Retry != nil {
@@ -371,6 +392,13 @@ func (c *HTTPClient) doRequest(ctx context.Context, method, path string, body an
 		}
 	}
 
+	// Extract usage metrics from headers
+	usageMetrics := c.extractUsageMetrics(resp.Header)
+	response.UsageMetrics = usageMetrics
+	if usageMetrics != nil && c.onUsageUpdate != nil {
+		c.onUsageUpdate(usageMetrics)
+	}
+
 	// Handle error status codes
 	if resp.StatusCode >= 400 {
 		return response, c.handleErrorResponse(resp.StatusCode, respBody)
@@ -411,6 +439,62 @@ func (c *HTTPClient) isRetryable(err error) bool {
 		}
 	}
 	return false
+}
+
+// extractUsageMetrics extracts usage metrics from response headers.
+func (c *HTTPClient) extractUsageMetrics(headers http.Header) *UsageMetrics {
+	apiUsage := headers.Get("X-API-Usage-Percent")
+	evalUsage := headers.Get("X-Evaluation-Usage-Percent")
+	rateLimitWarning := headers.Get("X-Rate-Limit-Warning")
+	subscriptionStatus := headers.Get("X-Subscription-Status")
+
+	// Return nil if no usage headers present
+	if apiUsage == "" && evalUsage == "" && rateLimitWarning == "" && subscriptionStatus == "" {
+		return nil
+	}
+
+	metrics := &UsageMetrics{
+		RateLimitWarning: rateLimitWarning == "true",
+	}
+
+	if apiUsage != "" {
+		if parsed, err := strconv.ParseFloat(apiUsage, 64); err == nil {
+			metrics.ApiUsagePercent = parsed
+		}
+	}
+
+	if evalUsage != "" {
+		if parsed, err := strconv.ParseFloat(evalUsage, 64); err == nil {
+			metrics.EvaluationUsagePercent = parsed
+		}
+	}
+
+	if subscriptionStatus != "" {
+		// Validate subscription status
+		validStatuses := map[string]bool{
+			"active":    true,
+			"trial":     true,
+			"past_due":  true,
+			"suspended": true,
+			"cancelled": true,
+		}
+		if validStatuses[subscriptionStatus] {
+			metrics.SubscriptionStatus = subscriptionStatus
+		}
+	}
+
+	// Log warnings for high usage
+	if metrics.ApiUsagePercent >= 80 && c.logger != nil {
+		c.logger.Warn("[FlagKit] API usage at high level", "percent", metrics.ApiUsagePercent)
+	}
+	if metrics.EvaluationUsagePercent >= 80 && c.logger != nil {
+		c.logger.Warn("[FlagKit] Evaluation usage at high level", "percent", metrics.EvaluationUsagePercent)
+	}
+	if metrics.SubscriptionStatus == "suspended" && c.logger != nil {
+		c.logger.Error("[FlagKit] Subscription suspended - service degraded")
+	}
+
+	return metrics
 }
 
 // Close closes the HTTP client.
