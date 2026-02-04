@@ -13,6 +13,19 @@ type FlagState = types.FlagState
 type ErrorSanitizationConfig = errors.ErrorSanitizationConfig
 type NullLogger = types.NullLogger
 
+// UsageMetrics contains usage metrics extracted from API response headers.
+type UsageMetrics struct {
+	// ApiUsagePercent is the percentage of API call limit used this period (0-150+).
+	ApiUsagePercent float64
+	// EvaluationUsagePercent is the percentage of evaluation limit used (0-150+).
+	EvaluationUsagePercent float64
+	// RateLimitWarning indicates whether approaching rate limit threshold.
+	RateLimitWarning bool
+	// SubscriptionStatus is the current subscription status.
+	// Valid values: "active", "trial", "past_due", "suspended", "cancelled"
+	SubscriptionStatus string
+}
+
 // Error function aliases
 var (
 	NewError = errors.NewError
@@ -122,6 +135,18 @@ type Options struct {
 
 	// OnUpdate is called when flags are updated.
 	OnUpdate func([]FlagState)
+
+	// OnUsageUpdate is called when usage metrics are received from API responses.
+	// Provides visibility into API usage, rate limits, and subscription status.
+	OnUsageUpdate func(*UsageMetrics)
+
+	// OnSubscriptionError is called when a subscription error occurs (e.g., suspended).
+	// This allows applications to notify users of subscription issues.
+	OnSubscriptionError func(message string)
+
+	// OnConnectionLimitError is called when the streaming connection limit is reached.
+	// Applications can use this to close other connections or implement backoff.
+	OnConnectionLimitError func()
 
 	// PersistEvents enables crash-resilient event persistence.
 	// When enabled, events are written to disk before being queued for sending.
@@ -380,6 +405,31 @@ func WithOnError(fn func(error)) OptionFunc {
 func WithOnUpdate(fn func([]FlagState)) OptionFunc {
 	return func(o *Options) {
 		o.OnUpdate = fn
+	}
+}
+
+// WithOnUsageUpdate sets the callback for usage metrics updates.
+// This callback is invoked when usage metrics are received from API responses,
+// providing visibility into API usage, rate limits, and subscription status.
+func WithOnUsageUpdate(fn func(*UsageMetrics)) OptionFunc {
+	return func(o *Options) {
+		o.OnUsageUpdate = fn
+	}
+}
+
+// WithOnSubscriptionError sets the callback for subscription errors.
+// This callback is invoked when the subscription is suspended or has other issues.
+func WithOnSubscriptionError(fn func(message string)) OptionFunc {
+	return func(o *Options) {
+		o.OnSubscriptionError = fn
+	}
+}
+
+// WithOnConnectionLimitError sets the callback for connection limit errors.
+// This callback is invoked when the streaming connection limit is reached.
+func WithOnConnectionLimitError(fn func()) OptionFunc {
+	return func(o *Options) {
+		o.OnConnectionLimitError = fn
 	}
 }
 
