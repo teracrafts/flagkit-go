@@ -16,15 +16,19 @@ const (
 	ErrInitNotInitialized     ErrorCode = "INIT_NOT_INITIALIZED"
 
 	// Authentication errors
-	ErrAuthInvalidKey   ErrorCode = "AUTH_INVALID_KEY"
-	ErrAuthExpiredKey   ErrorCode = "AUTH_EXPIRED_KEY"
-	ErrAuthMissingKey   ErrorCode = "AUTH_MISSING_KEY"
-	ErrAuthUnauthorized ErrorCode = "AUTH_UNAUTHORIZED"
+	ErrAuthInvalidKey            ErrorCode = "AUTH_INVALID_KEY"
+	ErrAuthExpiredKey            ErrorCode = "AUTH_EXPIRED_KEY"
+	ErrAuthMissingKey            ErrorCode = "AUTH_MISSING_KEY"
+	ErrAuthUnauthorized          ErrorCode = "AUTH_UNAUTHORIZED"
+	ErrAuthIPRestricted          ErrorCode = "AUTH_IP_RESTRICTED"           // 1107
+	ErrAuthOrganizationRequired  ErrorCode = "AUTH_ORGANIZATION_REQUIRED"   // 1108
+	ErrAuthSubscriptionSuspended ErrorCode = "AUTH_SUBSCRIPTION_SUSPENDED"  // 1109
 
 	// Network errors
-	ErrNetworkError      ErrorCode = "NETWORK_ERROR"
-	ErrNetworkTimeout    ErrorCode = "NETWORK_TIMEOUT"
-	ErrNetworkRetryLimit ErrorCode = "NETWORK_RETRY_LIMIT"
+	ErrNetworkError              ErrorCode = "NETWORK_ERROR"
+	ErrNetworkTimeout            ErrorCode = "NETWORK_TIMEOUT"
+	ErrNetworkRetryLimit         ErrorCode = "NETWORK_RETRY_LIMIT"
+	ErrNetworkServiceUnavailable ErrorCode = "NETWORK_SERVICE_UNAVAILABLE" // 1308
 
 	// Evaluation errors
 	ErrEvalFlagNotFound  ErrorCode = "EVAL_FLAG_NOT_FOUND"
@@ -63,6 +67,13 @@ const (
 	ErrConfigInvalidURL      ErrorCode = "CONFIG_INVALID_URL"
 	ErrConfigInvalidInterval ErrorCode = "CONFIG_INVALID_INTERVAL"
 	ErrConfigMissingRequired ErrorCode = "CONFIG_MISSING_REQUIRED"
+
+	// Streaming errors (1800-1899)
+	ErrStreamingTokenInvalid           ErrorCode = "STREAMING_TOKEN_INVALID"           // 1800
+	ErrStreamingTokenExpired           ErrorCode = "STREAMING_TOKEN_EXPIRED"           // 1801
+	ErrStreamingSubscriptionSuspended  ErrorCode = "STREAMING_SUBSCRIPTION_SUSPENDED"  // 1802
+	ErrStreamingConnectionLimit        ErrorCode = "STREAMING_CONNECTION_LIMIT"        // 1803
+	ErrStreamingUnavailable            ErrorCode = "STREAMING_UNAVAILABLE"             // 1804
 
 	// Security errors
 	ErrSecurityLocalPortInProduction ErrorCode = "SECURITY_LOCAL_PORT_IN_PRODUCTION"
@@ -156,8 +167,11 @@ func (e *FlagKitError) WithDetails(details map[string]any) *FlagKitError {
 func isRecoverable(code ErrorCode) bool {
 	switch code {
 	case ErrNetworkError, ErrNetworkTimeout, ErrNetworkRetryLimit,
+		ErrNetworkServiceUnavailable,
 		ErrCircuitOpen, ErrCacheExpired, ErrEvalStaleValue,
-		ErrEvalCacheMiss, ErrEvalNetworkError, ErrEventSendFailed:
+		ErrEvalCacheMiss, ErrEvalNetworkError, ErrEventSendFailed,
+		ErrStreamingTokenInvalid, ErrStreamingTokenExpired,
+		ErrStreamingConnectionLimit, ErrStreamingUnavailable:
 		return true
 	default:
 		return false
@@ -189,6 +203,11 @@ func NetworkError(code ErrorCode, message string, cause error) *FlagKitError {
 
 // EvaluationError creates an evaluation error.
 func EvaluationError(code ErrorCode, message string) *FlagKitError {
+	return NewError(code, message)
+}
+
+// StreamingError creates a streaming error.
+func StreamingError(code ErrorCode, message string) *FlagKitError {
 	return NewError(code, message)
 }
 
