@@ -107,15 +107,39 @@ func (r *EvaluationResult) JSONValue() map[string]any {
 	return nil
 }
 
+// InitResponseMetadata contains version and feature metadata from the init response.
+type InitResponseMetadata struct {
+	// SDKVersionMin is the minimum SDK version required (older versions may not work).
+	SDKVersionMin string `json:"sdkVersionMin,omitempty"`
+	// SDKVersionRecommended is the recommended SDK version for optimal experience.
+	SDKVersionRecommended string `json:"sdkVersionRecommended,omitempty"`
+	// SDKVersionLatest is the latest available SDK version.
+	SDKVersionLatest string `json:"sdkVersionLatest,omitempty"`
+	// DeprecationWarning is a deprecation warning message from the server.
+	DeprecationWarning string `json:"deprecationWarning,omitempty"`
+	// Features contains feature availability flags.
+	Features *InitResponseFeatures `json:"features,omitempty"`
+}
+
+// InitResponseFeatures contains feature availability flags.
+type InitResponseFeatures struct {
+	Streaming   bool `json:"streaming"`
+	LocalEval   bool `json:"localEval"`
+	Experiments bool `json:"experiments"`
+	Segments    bool `json:"segments"`
+}
+
 // InitResponse represents the response from the init endpoint.
 type InitResponse struct {
-	Flags                  []FlagState `json:"flags"`
-	Environment            string      `json:"environment"`
-	EnvironmentID          string      `json:"environmentId"`
-	ProjectID              string      `json:"projectId"`
-	OrganizationID         string      `json:"organizationId"`
-	ServerTime             string      `json:"serverTime"`
-	PollingIntervalSeconds int         `json:"pollingIntervalSeconds"`
+	Flags                  []FlagState           `json:"flags"`
+	Environment            string                `json:"environment"`
+	EnvironmentID          string                `json:"environmentId"`
+	ProjectID              string                `json:"projectId"`
+	OrganizationID         string                `json:"organizationId"`
+	ServerTime             string                `json:"serverTime"`
+	PollingIntervalSeconds int                   `json:"pollingIntervalSeconds"`
+	StreamingURL           string                `json:"streamingUrl,omitempty"`
+	Metadata               *InitResponseMetadata `json:"metadata,omitempty"`
 }
 
 // UpdatesResponse represents the response from the updates endpoint.
