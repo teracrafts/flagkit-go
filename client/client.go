@@ -11,6 +11,7 @@ import (
 	"github.com/flagkit/flagkit-go/internal/http"
 	"github.com/flagkit/flagkit-go/internal/persistence"
 	inttypes "github.com/flagkit/flagkit-go/internal/types"
+	"github.com/flagkit/flagkit-go/internal/version"
 	"github.com/flagkit/flagkit-go/security"
 	"github.com/flagkit/flagkit-go/types"
 )
@@ -275,6 +276,9 @@ func (c *Client) Initialize() error {
 
 	// Set environment ID for event tracking
 	c.eventQueue.SetEnvironmentID(data.EnvironmentID)
+
+	// Check SDK version metadata and emit warnings
+	c.checkVersionMetadata(data)
 
 	// Convert to internal FlagState and store in cache
 	internalFlags := make([]inttypes.FlagState, len(data.Flags))
@@ -753,6 +757,46 @@ func (c *Client) applyEvaluationJitter() {
 
 	if jitterMs > 0 {
 		time.Sleep(time.Duration(jitterMs) * time.Millisecond)
+	}
+}
+
+// checkVersionMetadata checks SDK version metadata from init response and emits appropriate warnings.
+//
+// Per spec, the SDK should parse and surface:
+//   - sdkVersionMin: Minimum required version (older may not work)
+//   - sdkVersionRecommended: Recommended version for optimal experience
+//   - sdkVersionLatest: Latest available version
+//   - deprecationWarning: Server-provided deprecation message
+func (c *Client) checkVersionMetadata(data *types.InitResponse) {
+	if data.Metadata == nil {
+		return
+	}
+
+	metadata := data.Metadata
+
+	// Check for server-provided deprecation warning first
+	if metadata.DeprecationWarning != "" {
+		c.logger.Warn("[FlagKit] Deprecation Warning: " + metadata.DeprecationWarning)
+	}
+
+	// Check minimum version requirement
+	if metadata.SDKVersionMin != "" && version.IsLessThan(SDKVersion, metadata.SDKVersionMin) {
+		c.logger.Error("[FlagKit] SDK version " + SDKVersion + " is below minimum required version " + metadata.SDKVersionMin + ". " +
+			"Some features may not work correctly. Please upgrade the SDK.")
+	}
+
+	// Check recommended version
+	warnedAboutRecommended := false
+	if metadata.SDKVersionRecommended != "" && version.IsLessThan(SDKVersion, metadata.SDKVersionRecommended) {
+		c.logger.Warn("[FlagKit] SDK version " + SDKVersion + " is below recommended version " + metadata.SDKVersionRecommended + ". " +
+			"Consider upgrading for the best experience.")
+		warnedAboutRecommended = true
+	}
+
+	// Log if a newer version is available (info level, not a warning)
+	// Only log if we haven't already warned about recommended
+	if metadata.SDKVersionLatest != "" && version.IsLessThan(SDKVersion, metadata.SDKVersionLatest) && !warnedAboutRecommended {
+		c.logger.Info("[FlagKit] SDK version " + SDKVersion + " - a newer version " + metadata.SDKVersionLatest + " is available.")
 	}
 }
 
