@@ -6,10 +6,10 @@ package flagkit
 import (
 	"time"
 
-	"github.com/flagkit/flagkit-go/internal/core"
-	"github.com/flagkit/flagkit-go/internal/http"
-	"github.com/flagkit/flagkit-go/internal/persistence"
-	inttypes "github.com/flagkit/flagkit-go/internal/types"
+	"github.com/teracrafts/flagkit-go/internal/core"
+	"github.com/teracrafts/flagkit-go/internal/http"
+	"github.com/teracrafts/flagkit-go/internal/persistence"
+	inttypes "github.com/teracrafts/flagkit-go/internal/types"
 )
 
 // Cache wraps core.Cache for public access
