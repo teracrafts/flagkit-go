@@ -23,11 +23,11 @@ package flagkit
 import (
 	"sync"
 
-	"github.com/flagkit/flagkit-go/client"
-	"github.com/flagkit/flagkit-go/config"
-	"github.com/flagkit/flagkit-go/errors"
-	"github.com/flagkit/flagkit-go/security"
-	"github.com/flagkit/flagkit-go/types"
+	"github.com/teracrafts/flagkit-go/client"
+	"github.com/teracrafts/flagkit-go/config"
+	"github.com/teracrafts/flagkit-go/errors"
+	"github.com/teracrafts/flagkit-go/security"
+	"github.com/teracrafts/flagkit-go/types"
 )
 
 // Re-export commonly used types for convenience
