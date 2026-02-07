@@ -10,7 +10,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/flagkit/flagkit-go/internal/types"
+	"github.com/teracrafts/flagkit-go/internal/types"
 	"golang.org/x/crypto/pbkdf2"
 )
 
