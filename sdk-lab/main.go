@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	flagkit "github.com/flagkit/flagkit-go"
+	flagkit "github.com/teracrafts/flagkit-go"
 )
 
 const (
