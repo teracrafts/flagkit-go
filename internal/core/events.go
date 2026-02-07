@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flagkit/flagkit-go/internal/http"
-	"github.com/flagkit/flagkit-go/internal/types"
+	"github.com/teracrafts/flagkit-go/internal/http"
+	"github.com/teracrafts/flagkit-go/internal/types"
 )
 
 // Event represents an analytics event.
