@@ -3,8 +3,8 @@ package errors_test
 import (
 	"testing"
 
-	"github.com/flagkit/flagkit-go/config"
-	. "github.com/flagkit/flagkit-go/errors"
+	"github.com/teracrafts/flagkit-go/config"
+	. "github.com/teracrafts/flagkit-go/errors"
 )
 
 func TestWithErrorSanitization(t *testing.T) {
