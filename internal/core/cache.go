@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flagkit/flagkit-go/internal/types"
+	"github.com/teracrafts/flagkit-go/internal/types"
 )
 
 // CacheEntry represents a cached flag with metadata.
