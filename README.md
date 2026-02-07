@@ -5,7 +5,7 @@ Official Go SDK for [FlagKit](https://flagkit.dev) - Feature flag management mad
 ## Installation
 
 ```bash
-go get github.com/flagkit/flagkit-go
+go get github.com/teracrafts/flagkit-go
 ```
 
 ## Requirements
@@ -19,7 +19,7 @@ package main
 
 import (
     "log"
-    "github.com/flagkit/flagkit-go"
+    "github.com/teracrafts/flagkit-go"
 )
 
 func main() {
