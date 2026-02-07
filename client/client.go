@@ -5,15 +5,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flagkit/flagkit-go/config"
-	"github.com/flagkit/flagkit-go/errors"
-	"github.com/flagkit/flagkit-go/internal/core"
-	"github.com/flagkit/flagkit-go/internal/http"
-	"github.com/flagkit/flagkit-go/internal/persistence"
-	inttypes "github.com/flagkit/flagkit-go/internal/types"
-	"github.com/flagkit/flagkit-go/internal/version"
-	"github.com/flagkit/flagkit-go/security"
-	"github.com/flagkit/flagkit-go/types"
+	"github.com/teracrafts/flagkit-go/config"
+	"github.com/teracrafts/flagkit-go/errors"
+	"github.com/teracrafts/flagkit-go/internal/core"
+	"github.com/teracrafts/flagkit-go/internal/http"
+	"github.com/teracrafts/flagkit-go/internal/persistence"
+	inttypes "github.com/teracrafts/flagkit-go/internal/types"
+	"github.com/teracrafts/flagkit-go/internal/version"
+	"github.com/teracrafts/flagkit-go/security"
+	"github.com/teracrafts/flagkit-go/types"
 )
 
 // Type aliases for convenience
