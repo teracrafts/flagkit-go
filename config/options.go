@@ -3,8 +3,8 @@ package config
 import (
 	"time"
 
-	"github.com/flagkit/flagkit-go/errors"
-	"github.com/flagkit/flagkit-go/types"
+	"github.com/teracrafts/flagkit-go/errors"
+	"github.com/teracrafts/flagkit-go/types"
 )
 
 // Type aliases for convenience
