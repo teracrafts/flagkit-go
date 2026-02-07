@@ -1,4 +1,4 @@
-module github.com/flagkit/flagkit-go
+module github.com/teracrafts/flagkit-go
 
 go 1.21
 
