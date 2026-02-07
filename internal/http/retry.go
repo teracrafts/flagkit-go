@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/flagkit/flagkit-go/internal/types"
+	"github.com/teracrafts/flagkit-go/internal/types"
 )
 
 // retryFlagKitError is an alias for types.FlagKitError (used for type assertions).
