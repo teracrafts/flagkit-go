@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/flagkit/flagkit-go"
+	. "github.com/teracrafts/flagkit-go"
 	"github.com/stretchr/testify/assert"
 )
 
