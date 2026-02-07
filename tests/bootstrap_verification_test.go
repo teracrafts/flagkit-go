@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/flagkit/flagkit-go"
+	. "github.com/teracrafts/flagkit-go"
 )
 
 func TestCanonicalizeObject(t *testing.T) {
