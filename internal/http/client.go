@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flagkit/flagkit-go/internal/types"
+	"github.com/teracrafts/flagkit-go/internal/types"
 )
 
 // Logger is an alias for the types.Logger interface.
