@@ -44,7 +44,7 @@ var NewErrorWithCause = types.NewErrorWithCause
 var NetworkError = types.NetworkError
 
 // SDKVersion should be set by the main package.
-var SDKVersion = "1.0.6"
+var SDKVersion = "1.0.7"
 
 // defaultBaseURL is the internal base URL for the FlagKit API.
 const defaultBaseURL = "https://api.flagkit.dev/api/v1"
