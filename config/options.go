@@ -55,7 +55,7 @@ const (
 	DefaultRetries = 3
 
 	// SDKVersion is the current SDK version.
-	SDKVersion = "1.0.7"
+	SDKVersion = "1.0.8"
 )
 
 // Options configures the FlagKit client.
