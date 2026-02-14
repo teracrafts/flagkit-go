@@ -76,11 +76,10 @@ const (
 	ErrStreamingUnavailable            ErrorCode = "STREAMING_UNAVAILABLE"             // 1804
 
 	// Security errors
-	ErrSecurityLocalPortInProduction ErrorCode = "SECURITY_LOCAL_PORT_IN_PRODUCTION"
-	ErrSecurityPIIDetected           ErrorCode = "SECURITY_PII_DETECTED"
-	ErrSecuritySignatureInvalid      ErrorCode = "SECURITY_SIGNATURE_INVALID"
-	ErrSecurityEncryptionFailed      ErrorCode = "SECURITY_ENCRYPTION_FAILED"
-	ErrSecurityDecryptionFailed      ErrorCode = "SECURITY_DECRYPTION_FAILED"
+	ErrSecurityPIIDetected      ErrorCode = "SECURITY_PII_DETECTED"
+	ErrSecuritySignatureInvalid ErrorCode = "SECURITY_SIGNATURE_INVALID"
+	ErrSecurityEncryptionFailed ErrorCode = "SECURITY_ENCRYPTION_FAILED"
+	ErrSecurityDecryptionFailed ErrorCode = "SECURITY_DECRYPTION_FAILED"
 )
 
 // FlagKitError is the base error type for all FlagKit errors.
