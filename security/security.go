@@ -31,9 +31,8 @@ var (
 
 // Error code aliases
 const (
-	ErrSecurityPIIDetected           = errors.ErrSecurityPIIDetected
-	ErrSecurityLocalPortInProduction = errors.ErrSecurityLocalPortInProduction
-	ErrSecuritySignatureInvalid      = errors.ErrSecuritySignatureInvalid
+	ErrSecurityPIIDetected      = errors.ErrSecurityPIIDetected
+	ErrSecuritySignatureInvalid = errors.ErrSecuritySignatureInvalid
 )
 
 // PII field patterns (case-insensitive matching)
@@ -288,20 +287,6 @@ func IsProductionEnvironment() bool {
 	appEnv := os.Getenv("APP_ENV")
 
 	return strings.EqualFold(goEnv, "production") || strings.EqualFold(appEnv, "production")
-}
-
-// ValidateLocalPort validates that LocalPort is not used in production environments.
-// Returns a SecurityError if LocalPort is set in production.
-func ValidateLocalPort(localPort int) error {
-	if localPort > 0 && IsProductionEnvironment() {
-		return SecurityError(
-			ErrSecurityLocalPortInProduction,
-			"localPort cannot be used in production environments. "+
-				"This option is only for local development. "+
-				"See: https://docs.flagkit.dev/sdk/security#local-development",
-		)
-	}
-	return nil
 }
 
 // GetKeyID returns the first 8 characters of an API key for identification.
