@@ -66,3 +66,9 @@ All verifications passed!
 ## Note
 
 This folder uses a separate `go.mod` with a `replace` directive to reference the parent SDK module. It is not included in the distributed package.
+
+## Mode Routing
+Use `FLAGKIT_MODE` to control API target during SDK Lab runs:
+- `local` -> `https://api.flagkit.on/api/v1`
+- `beta` -> `https://api.beta.flagkit.dev/api/v1`
+- `carbon` (default) -> `https://api.flagkit.dev/api/v1`
