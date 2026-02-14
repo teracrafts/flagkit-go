@@ -113,9 +113,6 @@ type Options struct {
 	// Debug enables debug logging.
 	Debug bool
 
-	// LocalPort specifies a local port for development mode (0 means not set/production).
-	LocalPort int
-
 	// StrictPIIMode when enabled returns a SecurityError instead of warning
 	// when PII is detected in context/events without proper PrivateAttributes.
 	StrictPIIMode bool
@@ -430,13 +427,6 @@ func WithOnSubscriptionError(fn func(message string)) OptionFunc {
 func WithOnConnectionLimitError(fn func()) OptionFunc {
 	return func(o *Options) {
 		o.OnConnectionLimitError = fn
-	}
-}
-
-// WithLocalPort enables local development mode with the specified port.
-func WithLocalPort(port int) OptionFunc {
-	return func(o *Options) {
-		o.LocalPort = port
 	}
 }
 
