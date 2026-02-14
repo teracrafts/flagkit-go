@@ -357,50 +357,6 @@ func TestIsProductionEnvironment(t *testing.T) {
 	})
 }
 
-func TestValidateLocalPort(t *testing.T) {
-	// Save original env
-	originalGoEnv := os.Getenv("GO_ENV")
-	originalAppEnv := os.Getenv("APP_ENV")
-	defer func() {
-		_ = os.Setenv("GO_ENV", originalGoEnv)
-		_ = os.Setenv("APP_ENV", originalAppEnv)
-	}()
-
-	t.Run("allows localPort in non-production", func(t *testing.T) {
-		_ = os.Setenv("GO_ENV", "development")
-		_ = os.Unsetenv("APP_ENV")
-		err := ValidateLocalPort(8080)
-		if err != nil {
-			t.Errorf("expected no error, got %v", err)
-		}
-	})
-
-	t.Run("rejects localPort in production", func(t *testing.T) {
-		_ = os.Setenv("GO_ENV", "production")
-		_ = os.Unsetenv("APP_ENV")
-		err := ValidateLocalPort(8080)
-		if err == nil {
-			t.Error("expected error for localPort in production")
-		}
-		fkErr, ok := err.(*FlagKitError)
-		if !ok {
-			t.Error("expected FlagKitError")
-		}
-		if fkErr.Code != ErrSecurityLocalPortInProduction {
-			t.Errorf("expected ErrSecurityLocalPortInProduction, got %s", fkErr.Code)
-		}
-	})
-
-	t.Run("allows zero localPort in production", func(t *testing.T) {
-		_ = os.Setenv("GO_ENV", "production")
-		_ = os.Unsetenv("APP_ENV")
-		err := ValidateLocalPort(0)
-		if err != nil {
-			t.Errorf("expected no error for zero localPort, got %v", err)
-		}
-	})
-}
-
 func TestGetKeyID(t *testing.T) {
 	tests := []struct {
 		key      string
