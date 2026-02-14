@@ -115,7 +115,6 @@ const (
 	ErrInitAlreadyInitialized        = errors.ErrInitAlreadyInitialized
 	ErrInitNotInitialized            = errors.ErrInitNotInitialized
 	ErrSecurityPIIDetected           = errors.ErrSecurityPIIDetected
-	ErrSecurityLocalPortInProduction = errors.ErrSecurityLocalPortInProduction
 	ErrSecuritySignatureInvalid      = errors.ErrSecuritySignatureInvalid
 	ErrNetworkError                  = errors.ErrNetworkError
 	ErrAuthInvalidKey                = errors.ErrAuthInvalidKey
@@ -151,7 +150,6 @@ var (
 	WithOnReady               = config.WithOnReady
 	WithOnError               = config.WithOnError
 	WithOnUpdate              = config.WithOnUpdate
-	WithLocalPort             = config.WithLocalPort
 	WithSecondaryAPIKey       = config.WithSecondaryAPIKey
 	WithStrictPIIMode         = config.WithStrictPIIMode
 	WithRequestSigning        = config.WithRequestSigning
@@ -180,7 +178,6 @@ var (
 	CheckForPotentialPII           = security.CheckForPotentialPII
 	CheckPIIWithStrictMode         = security.CheckPIIWithStrictMode
 	IsProductionEnvironment        = security.IsProductionEnvironment
-	ValidateLocalPort              = security.ValidateLocalPort
 	GetKeyID                       = security.GetKeyID
 	GenerateHMACSHA256             = security.GenerateHMACSHA256
 	CreateRequestSignature         = security.CreateRequestSignature
