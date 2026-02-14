@@ -40,7 +40,6 @@ var (
 	NewDefaultLogger            = types.NewDefaultLogger
 	NewEventPersistence         = persistence.NewEventPersistence
 	NewEventPersisterAdapter    = persistence.NewEventPersisterAdapter
-	ValidateLocalPort           = security.ValidateLocalPort
 	CheckPIIWithStrictMode      = security.CheckPIIWithStrictMode
 	VerifyBootstrapSignature    = security.VerifyBootstrapSignature
 )
@@ -132,11 +131,6 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 		return nil, err
 	}
 
-	// Validate LocalPort is not used in production
-	if err := ValidateLocalPort(options.LocalPort); err != nil {
-		return nil, err
-	}
-
 	// Set up logger
 	var logger Logger
 	if options.Logger != nil {
@@ -172,7 +166,6 @@ func NewClient(apiKey string, opts ...OptionFunc) (*Client, error) {
 			Jitter:            100 * time.Millisecond,
 		},
 		Logger:    logger,
-		LocalPort: options.LocalPort,
 	})
 
 	// Create event persistence if enabled
