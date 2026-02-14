@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -48,6 +50,8 @@ var SDKVersion = "1.0.8"
 
 // defaultBaseURL is the internal base URL for the FlagKit API.
 const defaultBaseURL = "https://api.flagkit.dev/api/v1"
+const betaBaseURL = "https://api.beta.flagkit.dev/api/v1"
+const localBaseURL = "https://api.flagkit.on/api/v1"
 
 // HTTPClient handles HTTP communication with the FlagKit API.
 type HTTPClient struct {
@@ -77,7 +81,6 @@ type HTTPClientConfig struct {
 	Retry                  *RetryConfig
 	CircuitBreaker         *CircuitBreakerConfig
 	Logger                 Logger
-	LocalPort              int
 	// OnUsageUpdate is called when usage metrics are received from API responses.
 	OnUsageUpdate UsageUpdateCallback
 }
@@ -110,8 +113,11 @@ type HTTPResponse struct {
 // NewHTTPClient creates a new HTTP client.
 func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
 	baseURL := defaultBaseURL
-	if config.LocalPort > 0 {
-		baseURL = fmt.Sprintf("http://localhost:%d/api/v1", config.LocalPort)
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("FLAGKIT_MODE"))) {
+	case "local":
+		baseURL = localBaseURL
+	case "beta":
+		baseURL = betaBaseURL
 	}
 
 	gracePeriod := config.KeyRotationGracePeriod
