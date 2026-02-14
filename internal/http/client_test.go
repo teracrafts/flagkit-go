@@ -35,15 +35,90 @@ func TestNewHTTPClient(t *testing.T) {
 		}
 	})
 
-	t.Run("creates client with local port", func(t *testing.T) {
+}
+
+func TestBaseURLFromFlagKitMode(t *testing.T) {
+	t.Run("defaults to production URL", func(t *testing.T) {
+		t.Setenv("FLAGKIT_MODE", "")
 		client := NewHTTPClient(&HTTPClientConfig{
-			APIKey:    "sdk_test_api_key_12345",
-			Timeout:   5 * time.Second,
-			LocalPort: 8080,
+			APIKey:  "sdk_test_api_key_12345",
+			Timeout: 5 * time.Second,
 		})
 
-		if client.baseURL != "http://localhost:8080/api/v1" {
-			t.Errorf("expected base URL to be 'http://localhost:8080/api/v1', got '%s'", client.baseURL)
+		if client.baseURL != defaultBaseURL {
+			t.Errorf("expected %s, got %s", defaultBaseURL, client.baseURL)
+		}
+	})
+
+	t.Run("uses local URL when FLAGKIT_MODE=local", func(t *testing.T) {
+		t.Setenv("FLAGKIT_MODE", "local")
+		client := NewHTTPClient(&HTTPClientConfig{
+			APIKey:  "sdk_test_api_key_12345",
+			Timeout: 5 * time.Second,
+		})
+
+		if client.baseURL != localBaseURL {
+			t.Errorf("expected %s, got %s", localBaseURL, client.baseURL)
+		}
+	})
+
+	t.Run("uses beta URL when FLAGKIT_MODE=beta", func(t *testing.T) {
+		t.Setenv("FLAGKIT_MODE", "beta")
+		client := NewHTTPClient(&HTTPClientConfig{
+			APIKey:  "sdk_test_api_key_12345",
+			Timeout: 5 * time.Second,
+		})
+
+		if client.baseURL != betaBaseURL {
+			t.Errorf("expected %s, got %s", betaBaseURL, client.baseURL)
+		}
+	})
+
+	t.Run("is case-insensitive", func(t *testing.T) {
+		t.Setenv("FLAGKIT_MODE", "LOCAL")
+		client := NewHTTPClient(&HTTPClientConfig{
+			APIKey:  "sdk_test_api_key_12345",
+			Timeout: 5 * time.Second,
+		})
+
+		if client.baseURL != localBaseURL {
+			t.Errorf("expected %s, got %s", localBaseURL, client.baseURL)
+		}
+	})
+
+	t.Run("trims leading whitespace", func(t *testing.T) {
+		t.Setenv("FLAGKIT_MODE", " local")
+		client := NewHTTPClient(&HTTPClientConfig{
+			APIKey:  "sdk_test_api_key_12345",
+			Timeout: 5 * time.Second,
+		})
+
+		if client.baseURL != localBaseURL {
+			t.Errorf("expected %s, got %s", localBaseURL, client.baseURL)
+		}
+	})
+
+	t.Run("trims trailing whitespace", func(t *testing.T) {
+		t.Setenv("FLAGKIT_MODE", "beta ")
+		client := NewHTTPClient(&HTTPClientConfig{
+			APIKey:  "sdk_test_api_key_12345",
+			Timeout: 5 * time.Second,
+		})
+
+		if client.baseURL != betaBaseURL {
+			t.Errorf("expected %s, got %s", betaBaseURL, client.baseURL)
+		}
+	})
+
+	t.Run("falls through to production for unknown mode", func(t *testing.T) {
+		t.Setenv("FLAGKIT_MODE", "staging")
+		client := NewHTTPClient(&HTTPClientConfig{
+			APIKey:  "sdk_test_api_key_12345",
+			Timeout: 5 * time.Second,
+		})
+
+		if client.baseURL != defaultBaseURL {
+			t.Errorf("expected %s, got %s", defaultBaseURL, client.baseURL)
 		}
 	})
 }
@@ -166,7 +241,6 @@ func TestHTTPClientPost(t *testing.T) {
 			APIKey:               "sdk_test_api_key_12345",
 			EnableRequestSigning: true,
 			Timeout:              5 * time.Second,
-			LocalPort:            0,
 		})
 		// Override base URL for test
 		client.baseURL = server.URL
